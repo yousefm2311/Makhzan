@@ -887,7 +887,7 @@ def cashier_checkout():
             flash(str(exc), 'danger')
             return redirect(url_for('cashier_pos'))
         db.session.commit()
-        flash('Sale recorded through cashier.', 'success')
+        flash('تم تسجيل البيع عن طريق الكاشير.', 'success')
         return redirect(url_for('cashier_pos'))
     flash('Please complete the form correctly.', 'danger')
     return redirect(url_for('cashier_pos'))
@@ -1281,6 +1281,20 @@ def customers_report():
                           start_date=start_date,
                           end_date=end_date,
                           limit=limit)
+
+
+@app.route('/activity')
+@login_required
+@admin_required
+def activity():
+    logs = InventoryTransaction.query.order_by(InventoryTransaction.timestamp.desc()).limit(200).all()
+    type_labels = {
+        'sale': 'بيع',
+        'purchase': 'شراء',
+        'adjustment': 'تعديل',
+        'return': 'مرتجع'
+    }
+    return render_template('activity.html', logs=logs, type_labels=type_labels)
 
 
 # Users routes

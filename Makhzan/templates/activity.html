@@ -1,0 +1,44 @@
+﻿{% extends "base.html" %}
+
+{% block title %}سجل النشاطات{% endblock %}
+{% block header %}سجل النشاطات{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted">يعرض آخر التعديلات، الحركات، والعمليات التي تمت داخل النظام.</p>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>التاريخ</th>
+            <th>المستخدم</th>
+            <th>النوع</th>
+            <th>المنتج</th>
+            <th>الكمية</th>
+            <th>البيان</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ log.user.full_name if log.user and log.user.full_name else log.user.username if log.user else 'نظام' }}</td>
+            <td>{{ type_labels.get(log.transaction_type, log.transaction_type) }}</td>
+            <td>{{ log.product.name if log.product else '—' }}</td>
+            <td>{{ log.quantity_change }}</td>
+            <td>{{ log.notes }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center">لا توجد سجلات حتى الآن.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
