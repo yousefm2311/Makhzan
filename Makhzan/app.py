@@ -407,11 +407,11 @@ def add_product():
     if not categories:
         # Create some default categories if none exist
         default_categories = [
-            Category(name='ألبان', description='منتجات الألبان والأجبان'),
-            Category(name='مشروبات', description='المشروبات الغازية والعصائر'),
-            Category(name='معلبات', description='الأطعمة المعلبة'),
-            Category(name='منظفات', description='منتجات التنظيف'),
-            Category(name='حلويات', description='الحلويات والشوكولاتة')
+            # Category(name='ألبان', description='منتجات الألبان والأجبان'),
+            # Category(name='مشروبات', description='المشروبات الغازية والعصائر'),
+            # Category(name='معلبات', description='الأطعمة المعلبة'),
+            # Category(name='منظفات', description='منتجات التنظيف'),
+            # Category(name='حلويات', description='الحلويات والشوكولاتة')
         ]
         db.session.add_all(default_categories)
         db.session.commit()

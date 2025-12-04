@@ -1,0 +1,16 @@
+{
+  "name": "makhzan-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "concurrently \"py -3 ../Makhzan/app.py\" \"wait-on http://localhost:5000 && ..\\desktop_electron\\node_modules\\.bin\\electron .\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "wait-on": "^7.0.1"
+  },
+  "dependencies": {
+    "yargs": "^18.0.0"
+  }
+}

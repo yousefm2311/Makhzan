@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+desktop/node_modules/
+desktop_electron/node_modules/
+desktop_app/
