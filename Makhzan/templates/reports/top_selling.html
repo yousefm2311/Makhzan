@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير المنتجات الأكثر مبيعاً{% endblock %}
+
+{% block header %}تقرير المنتجات الأكثر مبيعاً{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h4 class="mb-3">المنتجات الأكثر مبيعاً{% if start_date and end_date %} من {{ start_date }} إلى {{ end_date }}{% endif %}</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم المنتج</th>
+                    <th>الباركود</th>
+                    <th>التصنيف</th>
+                    <th>الكمية المباعة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product, total_quantity in results %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.barcode }}</td>
+                    <td>{{ product.category.name if product.category else 'بدون تصنيف' }}</td>
+                    <td>{{ total_quantity }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">لا توجد بيانات في الفترة المختارة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

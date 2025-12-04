@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}إعدادات النظام - نظام إدارة المخزن{% endblock %}
+
+{% block header %}إعدادات النظام{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">إعدادات النظام المتقدمة</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('settings') }}">
+                    <div class="mb-3">
+                        <label for="store_name" class="form-label">اسم المتجر</label>
+                        <input type="text" class="form-control" id="store_name" name="store_name" value="{{ store_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="store_address" class="form-label">العنوان</label>
+                        <input type="text" class="form-control" id="store_address" name="store_address" value="{{ store_address }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="store_phone" class="form-label">رقم الهاتف</label>
+                        <input type="text" class="form-control" id="store_phone" name="store_phone" value="{{ store_phone }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="store_email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="store_email" name="store_email" value="{{ store_email }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="tax_rate" class="form-label">نسبة الضريبة (%)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="tax_rate" name="tax_rate" value="{{ tax_rate }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="currency" class="form-label">رمز العملة</label>
+                        <input type="text" class="form-control" id="currency" name="currency" value="{{ currency }}">
+                    </div>
+
+                    <hr>
+
+                    <h6 class="mb-3">إعدادات البريد للتنبيهات</h6>
+                    
+                    <div class="mb-3">
+                        <label for="notification_sender_email" class="form-label">البريد المُرسِل للتنبيهات</label>
+                        <input type="email" class="form-control" id="notification_sender_email" name="notification_sender_email" value="{{ notification_sender_email }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notification_sender_name" class="form-label">اسم المرسل</label>
+                        <input type="text" class="form-control" id="notification_sender_name" name="notification_sender_name" value="{{ notification_sender_name }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notification_password" class="form-label">كلمة مرور بريد Gmail</label>
+                        <input type="password" class="form-control" id="notification_password" name="notification_password" placeholder="لن يتم عرض كلمة المرور الحالية">
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">حفظ الإعدادات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

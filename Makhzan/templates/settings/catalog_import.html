@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}استيراد الكتالوج المرجعي{% endblock %}
+{% block header %}استيراد الكتالوج المرجعي{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>رفع ملف Excel</strong>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    استخدم الملف أو أي ملف Excel يحتوي على أعمدة للمنتج وSKU والباركود لتغذية الكتالوج المرجعي. هذه البيانات للاسترشاد فقط ولن تغير المخزون.
+                </p>
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.file.label(class="form-label") }}
+                        {{ form.file(class="form-control") }}
+                        {% if form.file.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.file.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i>
+                            رفع الملف
+                        </button>
+                    </div>
+                </form>
+                <form method="POST" action="{{ url_for('catalog_import_sample') }}">
+                    {{ form.csrf_token }}
+                    <button type="submit" class="btn btn-outline-secondary mt-3">
+                        <i class="fas fa-file-import"></i>
+                        استيراد من الملف النموذجي
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <strong>سجل الكتالوج المرجعي (أحدث 100)</strong>
+    </div>
+    <div class="card-body">
+        {% if reference_products %}
+        <div class="table-responsive">
+            <table class="table table-striped small">
+                <thead>
+                    <tr>
+                        <th scope="col">الاسم</th>
+                        <th scope="col">SKU</th>
+                        <th scope="col">الباركود</th>
+                        <th scope="col">المصدر</th>
+                        <th scope="col">تاريخ الإضافة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ref in reference_products %}
+                        <tr>
+                            <td>{{ ref.name }}</td>
+                            <td>{{ ref.sku or '-' }}</td>
+                            <td>{{ ref.barcode or '-' }}</td>
+                            <td>{{ ref.source_file or 'من داخل النظام' }}</td>
+                            <td>{{ ref.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p class="text-muted mb-0">لم يتم استيراد أي بيانات مرجعية بعد.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

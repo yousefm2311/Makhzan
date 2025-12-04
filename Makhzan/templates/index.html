@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - نظام إدارة المخزن{% endblock %}
+
+{% block header %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-box fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">المنتجات</h5>
+                <p class="card-text display-6">{{ total_products }}</p>
+                <a href="{{ url_for('products') }}" class="btn btn-sm btn-outline-primary">عرض المنتجات</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-truck fa-3x mb-3 text-success"></i>
+                <h5 class="card-title">الموردين</h5>
+                <p class="card-text display-6">{{ total_suppliers }}</p>
+                <a href="{{ url_for('suppliers') }}" class="btn btn-sm btn-outline-success">عرض الموردين</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-users fa-3x mb-3 text-info"></i>
+                <h5 class="card-title">العملاء</h5>
+                <p class="card-text display-6">{{ total_customers }}</p>
+                <a href="{{ url_for('customers') }}" class="btn btn-sm btn-outline-info">عرض العملاء</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                <h5 class="card-title">منتجات منخفضة</h5>
+                <p class="card-text display-6">{{ low_stock_products|length }}</p>
+                <a href="{{ url_for('inventory') }}?status=low" class="btn btn-sm btn-outline-warning">عرض المنتجات</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <i class="fas fa-hand-holding-dollar fa-3x mb-3 text-warning"></i>
+                <h5 class="card-title">المستحقات (ماجلة)</h5>
+                <p class="card-text display-6">{{ '{:.2f}'.format(pending_due_total) }}</p>
+                <p class="card-text small text-muted">عدد الفواتير: {{ pending_due_count }}</p>
+                <a href="{{ url_for('sales_due') }}" class="btn btn-sm btn-outline-warning">عرض الفواتير الماجلة</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <h5 class="card-title">صافي مبيعات بعد الماجل</h5>
+                <p class="card-text display-6">{{ '{:.2f}'.format(net_sales_after_due) }}</p>
+                <small class="text-muted">يستثني الفواتير الملغاة ويخصم المتبقي من الماجل</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <h5 class="card-title">صافي مشتريات بعد الماجل</h5>
+                <p class="card-text display-6">{{ '{:.2f}'.format(net_purchases_after_due) }}</p>
+                <small class="text-muted">يستثني الفواتير الملغاة ويخصم المتبقي من الماجل</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">المبيعات الأخيرة (7 أيام)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">المنتجات منخفضة المخزون</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for product, inventory in low_stock_products %}
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ product.name }}</h6>
+                            <small class="text-danger">{{ inventory.quantity }} / {{ product.min_quantity }}</small>
+                        </div>
+                        <p class="mb-1">{{ product.category.name if product.category else 'بدون تصنيف' }}</p>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">لا توجد منتجات منخفضة المخزون</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">آخر المبيعات</h5>
+                <a href="{{ url_for('sales') }}" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>التاريخ</th>
+                                <th>العميل</th>
+                                <th>المبلغ</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('view_sale', id=sale.id) }}">
+                                        {{ sale.invoice_number }}
+                                    </a>
+                                </td>
+                                <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ sale.customer.name if sale.customer else 'غير محدد' }}</td>
+                                <td>{{ "%.2f"|format(sale.total_amount) }}</td>
+                                <td>
+                                    {% if sale.status == 'completed' %}
+                                    <span class="badge bg-success">مكتملة</span>
+                                    {% elif sale.status == 'cancelled' %}
+                                    <span class="badge bg-danger">ملغية</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ sale.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">لا توجد مبيعات حديثة</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">آخر المشتريات</h5>
+                <a href="{{ url_for('purchases') }}" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>التاريخ</th>
+                                <th>المورد</th>
+                                <th>المبلغ</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for purchase in recent_purchases %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('view_purchase', id=purchase.id) }}">
+                                        {{ purchase.invoice_number }}
+                                    </a>
+                                </td>
+                                <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ purchase.supplier.name if purchase.supplier else 'غير محدد' }}</td>
+                                <td>{{ "%.2f"|format(purchase.total_amount) }}</td>
+                                <td>
+                                    {% if purchase.status == 'completed' %}
+                                    <span class="badge bg-success">مكتملة</span>
+                                    {% elif purchase.status == 'cancelled' %}
+                                    <span class="badge bg-danger">ملغية</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ purchase.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">لا توجد مشتريات حديثة</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sales chart
+        var ctx = document.getElementById('salesChart').getContext('2d');
+        var salesData = {{ sales_data|tojson }};
+        
+        var labels = salesData.map(function(item) {
+            return item.date;
+        });
+        
+        var data = salesData.map(function(item) {
+            return item.total;
+        });
+        
+        var salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'المبيعات اليومية',
+                    data: data,
+                    backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

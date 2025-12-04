@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل فاتورة الشراء - نظام إدارة المخزن{% endblock %}
+
+{% block header %}تفاصيل فاتورة الشراء: {{ purchase.invoice_number }}{% endblock %}
+
+{% block header_buttons %}
+<a href="{{ url_for('purchases') }}" class="btn btn-sm btn-secondary">
+    <i class="fas fa-arrow-right"></i> العودة للمشتريات
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">معلومات الفاتورة</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th style="width: 30%">رقم الفاتورة:</th>
+                                <td>{{ purchase.invoice_number }}</td>
+                            </tr>
+                            <tr>
+                                <th>تاريخ الشراء:</th>
+                                <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            <tr>
+                                <th>الحالة:</th>
+                                <td>
+                                    {% if purchase.status == 'completed' %}
+                                    <span class="badge bg-success">مكتملة</span>
+                                    {% elif purchase.status == 'cancelled' %}
+                                    <span class="badge bg-danger">ملغية</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ purchase.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th style="width: 30%">المورد:</th>
+                                <td>{{ purchase.supplier.name if purchase.supplier else 'غير محدد' }}</td>
+                            </tr>
+                            <tr>
+                                <th>طريقة الدفع:</th>
+                                <td>
+                                    {% if purchase.payment_method == 'cash' %}
+                                    نقدي
+                                    {% elif purchase.payment_method == 'card' %}
+                                    بطاقة ائتمان
+                                    {% elif purchase.payment_method == 'transfer' %}
+                                    تحويل بنكي
+                                    {% else %}
+                                    {{ purchase.payment_method }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>المبلغ الإجمالي:</th>
+                                <td>{{ "%.2f"|format(purchase.total_amount) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if purchase.notes %}
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">ملاحظات</h6>
+                            </div>
+                            <div class="card-body">
+                                {{ purchase.notes }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">المنتجات</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in purchase.items %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    {% if item.product %}
+                                        {{ item.product.name }}
+                                    {% else %}
+                                        <span class="text-danger">المنتج غير موجود (product_id: {{ item.product_id }})</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ "%.2f"|format(item.price) }}</td>
+                                <td>{{ "%.2f"|format(item.quantity * item.price) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="4" class="text-end">المجموع:</th>
+                                <th>{{ "%.2f"|format(purchase.total_amount) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

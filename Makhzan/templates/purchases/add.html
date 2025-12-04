@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة فاتورة شراء جديدة - نظام إدارة المخزن{% endblock %}
+
+{% block header %}إضافة فاتورة شراء جديدة{% endblock %}
+
+{% block header_buttons %}
+<a href="{{ url_for('purchases') }}" class="btn btn-sm btn-secondary">
+    <i class="fas fa-arrow-right"></i> العودة للمشتريات
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="purchaseForm" method="POST" action="{{ url_for('add_purchase') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.invoice_number.label(class="form-label") }}
+                                {{ form.invoice_number(class="form-control") }}
+                                {% if form.invoice_number.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.invoice_number.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.purchase_date.label(class="form-label") }}
+                                {{ form.purchase_date(class="form-control", type="date") }}
+                                {% if form.purchase_date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.purchase_date.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.supplier_id.label(class="form-label") }}
+                                {{ form.supplier_id(class="form-select") }}
+                                {% if form.supplier_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.supplier_id.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 border rounded d-none" id="purchase-credit-details">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">المبلغ المدفوع</label>
+                                    <input type="number" name="amount_paid" class="form-control" id="purchase-amount-paid" step="0.01" min="0" value="0" form="purchaseForm">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">المتبقي</label>
+                                    <div class="form-control bg-light" id="purchase-remaining-amount">0.00</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">تاريخ السداد المتبقي</label>
+                                    <input type="date" name="due_date" class="form-control" id="purchase-due-date" form="purchaseForm">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">بريد الإشعار</label>
+                                    <input type="email" name="notification_email" class="form-control" id="purchase-notification-email" placeholder="example@mail.com" form="purchaseForm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">إضافة منتجات</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <select id="product-select" class="form-select">
+                            <option value="">-- اختر منتج --</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" 
+                                        data-name="{{ product.name }}" 
+                                        data-price="{{ product.purchase_price }}">
+                                    {{ product.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" id="product-quantity" class="form-control" placeholder="الكمية" min="1" value="1">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" id="product-price" class="form-control" placeholder="السعر" step="0.01">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" id="add-product" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> إضافة
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="products-table">
+                        <thead>
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Products will be added here dynamically -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">المجموع:</th>
+                                <th id="total-amount">0.00</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" form="purchaseForm"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="payment-method" class="form-label">طريقة الدفع</label>
+                            <select class="form-select" id="payment-method" name="payment_method" form="purchaseForm">
+                                <option value="cash">نقدي</option>
+                                <option value="card">بطاقة ائتمان</option>
+                                <option value="transfer">تحويل بنكي</option>
+                                <option value="majel">ماجلة</option>
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" id="complete-purchase" class="btn btn-success">
+                                <i class="fas fa-check"></i> إتمام عملية الشراء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden inputs for purchase items -->
+<div id="purchase-items-container"></div>
+
+{% endblock %}
+
+<!-- At the bottom of your file, in the scripts block -->
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let products = [];
+        let totalAmount = 0;
+        const purchasePaymentSelect = document.getElementById('payment-method');
+        const purchaseCreditDetails = document.getElementById('purchase-credit-details');
+        const purchaseAmountPaidInput = document.getElementById('purchase-amount-paid');
+        const purchaseRemainingAmount = document.getElementById('purchase-remaining-amount');
+
+        function updatePurchaseRemainingAmount() {
+            if (!purchaseRemainingAmount || !purchaseAmountPaidInput) return;
+            const paid = parseFloat(purchaseAmountPaidInput.value) || 0;
+            const remaining = Math.max(0, totalAmount - paid);
+            purchaseRemainingAmount.textContent = remaining.toFixed(2);
+        }
+
+        function togglePurchaseCreditDetails() {
+            if (!purchaseCreditDetails || !purchasePaymentSelect) return;
+            if (purchasePaymentSelect.value === 'majel') {
+                purchaseCreditDetails.classList.remove('d-none');
+            } else {
+                purchaseCreditDetails.classList.add('d-none');
+            }
+            updatePurchaseRemainingAmount();
+        }
+
+        if (purchasePaymentSelect) {
+            purchasePaymentSelect.addEventListener('change', togglePurchaseCreditDetails);
+        }
+        if (purchaseAmountPaidInput) {
+            purchaseAmountPaidInput.addEventListener('input', updatePurchaseRemainingAmount);
+        }
+        togglePurchaseCreditDetails();
+        
+        // Product selection change
+        document.getElementById('product-select').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const price = parseFloat(selectedOption.dataset.price);
+                document.getElementById('product-price').value = price.toFixed(2);
+            } else {
+                document.getElementById('product-price').value = '';
+            }
+        });
+        
+        // Add product button
+        document.getElementById('add-product').addEventListener('click', function() {
+            const productSelect = document.getElementById('product-select');
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+            
+            if (!selectedOption.value) {
+                alert('الرجاء اختيار منتج');
+                return;
+            }
+            
+            const productId = selectedOption.value;
+            const productName = selectedOption.dataset.name;
+            const quantity = parseInt(document.getElementById('product-quantity').value);
+            const price = parseFloat(document.getElementById('product-price').value);
+            
+            if (isNaN(quantity) || quantity <= 0) {
+                alert('الرجاء إدخال كمية صحيحة');
+                return;
+            }
+            
+            if (isNaN(price) || price <= 0) {
+                alert('الرجاء إدخال سعر صحيح');
+                return;
+            }
+            
+            // Check if product already exists in the table
+            const existingProduct = products.find(p => p.id === productId);
+            if (existingProduct) {
+                existingProduct.quantity += quantity;
+                existingProduct.total = existingProduct.quantity * existingProduct.price;
+                updateProductsTable();
+            } else {
+                const product = {
+                    id: productId,
+                    name: productName,
+                    quantity: quantity,
+                    price: price,
+                    total: quantity * price
+                };
+                products.push(product);
+                updateProductsTable();
+            }
+            
+            // Reset form
+            productSelect.selectedIndex = 0;
+            document.getElementById('product-quantity').value = 1;
+            document.getElementById('product-price').value = '';
+        });
+        
+        // Update products table
+        function updateProductsTable() {
+            const tbody = document.querySelector('#products-table tbody');
+            tbody.innerHTML = '';
+            totalAmount = 0;
+            
+            products.forEach((product, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price.toFixed(2)}</td>
+                    <td>${product.total.toFixed(2)}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger remove-product" data-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                totalAmount += product.total;
+            });
+            
+            document.getElementById('total-amount').textContent = totalAmount.toFixed(2);
+            updatePurchaseRemainingAmount();
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-product').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.index);
+                    products.splice(index, 1);
+                    updateProductsTable();
+                });
+            });
+        }
+        
+        // Complete purchase button
+        document.getElementById('complete-purchase').addEventListener('click', function() {
+            // Check if there are any products added
+            if (products.length === 0) {
+                alert('يرجى إضافة منتج واحد على الأقل');
+                return;
+            }
+            // Add hidden inputs for total amount
+            const totalInput = document.createElement('input');
+            totalInput.type = 'hidden';
+            totalInput.name = 'total_amount';
+            totalInput.value = totalAmount;
+            document.getElementById('purchaseForm').appendChild(totalInput);
+
+            // احذف الحقول القديمة أولاً
+            // سنضيف الحقول داخل الفورم نفسه وليس في div خارجي
+            // احذف أي حقول مخفية قديمة
+            const form = document.getElementById('purchaseForm');
+            const oldHidden = form.querySelectorAll('input[type="hidden"][data-product-item]');
+            oldHidden.forEach(e => e.remove());
+
+            // Add hidden inputs for each product
+            products.forEach((product, index) => {
+                const productIdInput = document.createElement('input');
+                productIdInput.type = 'hidden';
+                productIdInput.name = `items-${index}-product_id`;
+                productIdInput.value = product.id;
+                productIdInput.setAttribute('data-product-item', '1');
+
+                const quantityInput = document.createElement('input');
+                quantityInput.type = 'hidden';
+                quantityInput.name = `items-${index}-quantity`;
+                quantityInput.value = product.quantity;
+                quantityInput.setAttribute('data-product-item', '1');
+
+                const priceInput = document.createElement('input');
+                priceInput.type = 'hidden';
+                priceInput.name = `items-${index}-price`;
+                priceInput.value = product.price;
+                priceInput.setAttribute('data-product-item', '1');
+
+                form.appendChild(productIdInput);
+                form.appendChild(quantityInput);
+                form.appendChild(priceInput);
+            });
+
+            // Submit the form
+            form.submit();
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}سجل الكاشير{% endblock %}
+{% block header %}مبيعات الكاشير{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>رقم الفاتورة</th>
+                        <th>العميل</th>
+                        <th>الكاشير</th>
+                        <th>الإجمالي</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>التاريخ</th>
+                        <th>الحالة</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td>{{ sale.id }}</td>
+                        <td>{{ sale.invoice_number }}</td>
+                        <td>{{ sale.customer.name if sale.customer else 'Walk-in' }}</td>
+                        <td>{{ sale.cashier.full_name if sale.cashier and sale.cashier.full_name else sale.cashier.username if sale.cashier else '-' }}</td>
+                        <td>{{ '%.2f' | format(sale.total_amount) }}</td>
+                        <td>{{ '%.2f' | format(sale.amount_paid) }}</td>
+                        <td>{{ '%.2f' | format(sale.due_amount) }}</td>
+                        <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if sale.status == 'completed' %}
+                            <span class="badge bg-success">مكتملة</span>
+                            {% elif sale.status == 'cancelled' %}
+                            <span class="badge bg-danger">ملغاة</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ sale.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_sale', id=sale.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center">لا توجد مبيعات للكاشير حتى الآن.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

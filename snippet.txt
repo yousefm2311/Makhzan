@@ -1,0 +1,10 @@
+def delete_product(id):
+    product = Product.query.get_or_404(id)
+    # احذف كل حركات المخزون المرتبطة بالمنتج
+    InventoryTransaction.query.filter_by(product_id=product.id).delete()
+    # احذف سجل المخزون المرتبط بالمنتج أولاً
+    if product.inventory:
+        db.session.delete(product.inventory)
+    db.session.delete(product)
+    db.session.commit()
+    flash('تم حذف المنتج بنجاح', 'success')

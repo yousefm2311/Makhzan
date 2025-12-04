@@ -1,0 +1,6 @@
+    name_idx = find_index(['اسم', 'product'])
+    sku_idx = find_index(['sku'])
+    barcode_idx = find_index(['barcode', 'code'])
+desc_idx = find_index(['desc', 'description', 'مواصفات', 'وصف', 'بيان'])
+notes_idx = find_index(['notes', 'ملاحظات', 'remarks', 'comments'])
+

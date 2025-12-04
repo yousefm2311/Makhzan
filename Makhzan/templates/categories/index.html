@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}فئات المنتجات - نظام إدارة المخزن{% endblock %}
+
+{% block header %}فئات المنتجات{% endblock %}
+
+{% block header_buttons %}
+{% if current_user.role == 'admin' %}
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+    <i class="fas fa-plus"></i> إضافة فئة جديدة
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم الفئة</th>
+                        <th>الوصف</th>
+                        <th>عدد المنتجات</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr>
+                        <td>{{ category.id }}</td>
+                        <td>{{ category.name }}</td>
+                        <td>{{ category.description }}</td>
+                        <td>{{ category.products|length }}</td>
+                        <td>
+                            {% if current_user.role == 'admin' %}
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ category.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal{{ category.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            
+                            <!-- Modal for Edit Category -->
+                            <div class="modal fade" id="editCategoryModal{{ category.id }}" tabindex="-1" aria-labelledby="editCategoryModalLabel{{ category.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editCategoryModalLabel{{ category.id }}">تعديل الفئة</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form action="{{ url_for('edit_category', id=category.id) }}" method="POST">
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label for="name{{ category.id }}" class="form-label">اسم الفئة</label>
+                                                    <input type="text" class="form-control" id="name{{ category.id }}" name="name" value="{{ category.name }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="description{{ category.id }}" class="form-label">الوصف</label>
+                                                    <textarea class="form-control" id="description{{ category.id }}" name="description" rows="3">{{ category.description }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Modal for Delete Confirmation -->
+                            <div class="modal fade" id="deleteCategoryModal{{ category.id }}" tabindex="-1" aria-labelledby="deleteCategoryModalLabel{{ category.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteCategoryModalLabel{{ category.id }}">تأكيد الحذف</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            هل أنت متأكد من حذف الفئة "{{ category.name }}"؟
+                                            {% if category.products|length > 0 %}
+                                            <div class="alert alert-warning mt-2">
+                                                <i class="fas fa-exclamation-triangle"></i> تحذير: هذه الفئة تحتوي على {{ category.products|length }} منتج. حذف الفئة سيؤدي إلى إزالة ارتباط المنتجات بها.
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                            <form action="{{ url_for('delete_category', id=category.id) }}" method="POST">
+                                                <button type="submit" class="btn btn-danger">حذف</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Add Category -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCategoryModalLabel">إضافة فئة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('add_category') }}" method="POST">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control", id="name", list="reference-category-list", autocomplete="off") }}
+                        <datalist id="reference-category-list"></datalist>
+                        {% if form.name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.name.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", id="description", rows=3) }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.description.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const nameInput = document.getElementById('name');
+        const descriptionInput = document.getElementById('description');
+        const datalist = document.getElementById('reference-category-list');
+        let suggestions = [];
+
+        function clearSuggestions() {
+            suggestions = [];
+            if (datalist) {
+                datalist.innerHTML = '';
+            }
+        }
+
+        function populateDatalist(items = []) {
+            clearSuggestions();
+            if (!datalist) {
+                return;
+            }
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.name;
+                if (item.notes) {
+                    option.dataset.notes = item.notes;
+                }
+                datalist.appendChild(option);
+            });
+            suggestions = items;
+        }
+
+        async function fetchSuggestions(term) {
+            if (!term || term.length < 2) {
+                clearSuggestions();
+                return;
+            }
+            try {
+                const response = await fetch(`{{ url_for('reference_category_suggestions') }}?term=${encodeURIComponent(term)}&limit=10`);
+                if (!response.ok) {
+                    throw new Error('Failed to load reference categories.');
+                }
+                const data = await response.json();
+                populateDatalist(data);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        if (!nameInput) {
+            return;
+        }
+
+        nameInput.addEventListener('input', function () {
+            const term = this.value.trim();
+            fetchSuggestions(term);
+        });
+
+        nameInput.addEventListener('change', function () {
+            const match = suggestions.find(item => item.name === this.value);
+            if (match && descriptionInput) {
+                descriptionInput.value = match.notes || '';
+            }
+        });
+    });
+</script>
+{% endblock %}

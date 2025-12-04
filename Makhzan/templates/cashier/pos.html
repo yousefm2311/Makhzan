@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}نقطة بيع الكاشير{% endblock %}
+{% block header %}نقطة بيع الكاشير{% endblock %}
+
+{% block header_buttons %}
+{% if current_user.role == 'admin' %}
+<a href="{{ url_for('cashier_logs') }}" class="btn btn-sm btn-primary">
+    <i class="fas fa-list"></i> سجل الكاشير
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="cashierForm" method="POST" action="{{ url_for('cashier_checkout') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.invoice_number.label(class="form-label") }}
+                        {{ form.invoice_number(class="form-control", readonly=True) }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.sale_date.label(class="form-label") }}
+                        {{ form.sale_date(class="form-control", type="date") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.customer_id.label(class="form-label") }}
+                        {{ form.customer_id(class="form-select") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control", rows="3") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.payment_method.label(class="form-label") }}
+                        {{ form.payment_method(class="form-select", id="payment-method-select") }}
+                    </div>
+                    <div class="mt-3 p-3 border rounded d-none" id="cashier-credit-details">
+                        <div class="mb-3">
+                            <label class="form-label">المبلغ المدفوع</label>
+                            <input type="number" name="amount_paid" class="form-control" id="amount-paid-input" step="0.01" min="0" value="0" form="cashierForm">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">المتبقي</label>
+                            <div class="form-control bg-light" id="remaining-amount">0.00</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">تاريخ الاستحقاق</label>
+                            <input type="date" name="due_date" id="due-date-input" class="form-control" form="cashierForm">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">البريد الإلكتروني للإشعار</label>
+                            <input type="email" name="notification_email" id="notification-email-input" class="form-control" placeholder="example@mail.com" form="cashierForm">
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="button" id="complete-sale-btn" class="btn btn-success">
+                            <i class="fas fa-check"></i> إتمام البيع
+                        </button>
+                    </div>
+                    <div id="cashier-items-container"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card mb-4">
+                <div class="card-header">
+                <h5 class="card-title mb-0">ماسح الباركود</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-8">
+                        <input type="text" id="product-code-input" class="form-control" placeholder="امسح الباركود أو أدخل الكود">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" id="product-quantity-input" class="form-control" min="1" value="1">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" id="add-product-button" class="btn btn-primary w-100">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="scanner-feedback" class="mb-2 text-muted"></div>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle" id="cashier-cart">
+                        <thead>
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th>المتاح</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>الإجمالي:</strong>
+                    <span id="cashier-total">0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('cashierForm');
+    const productCodeInput = document.getElementById('product-code-input');
+    const quantityInput = document.getElementById('product-quantity-input');
+    const addButton = document.getElementById('add-product-button');
+    const cartBody = document.querySelector('#cashier-cart tbody');
+    const totalDisplay = document.getElementById('cashier-total');
+    const itemsContainer = document.getElementById('cashier-items-container');
+    const paymentMethodSelect = document.getElementById('payment-method-select');
+    const creditDetails = document.getElementById('cashier-credit-details');
+    const amountPaidInput = document.getElementById('amount-paid-input');
+    const remainingAmountEl = document.getElementById('remaining-amount');
+    const scannerFeedback = document.getElementById('scanner-feedback');
+    const productInfoUrl = "{{ url_for('cashier_product_info') }}";
+
+    let cart = [];
+    let totalAmount = 0;
+
+    function updateRemainingAmount() {
+        if (!remainingAmountEl || !amountPaidInput) return;
+        const paid = parseFloat(amountPaidInput.value) || 0;
+        const remaining = Math.max(0, totalAmount - paid);
+        remainingAmountEl.textContent = remaining.toFixed(2);
+    }
+
+    function toggleCreditDetails() {
+        if (!creditDetails || !paymentMethodSelect) return;
+        if (paymentMethodSelect.value === 'majel') {
+            creditDetails.classList.remove('d-none');
+        } else {
+            creditDetails.classList.add('d-none');
+        }
+        updateRemainingAmount();
+    }
+
+    function setFeedback(message, isError = false) {
+        if (!scannerFeedback) return;
+        scannerFeedback.textContent = message;
+        scannerFeedback.classList.toggle('text-danger', isError);
+    }
+
+    function renderCart() {
+        cartBody.innerHTML = '';
+        totalAmount = 0;
+        cart.forEach((item, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td><input type="number" min="1" class="form-control form-control-sm cart-qty-input" data-index="${index}" value="${item.quantity}" style="width: 70px;"></td>
+                <td>${item.price.toFixed(2)}</td>
+                <td>${(item.price * item.quantity).toFixed(2)}</td>
+                <td>${item.available}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" data-index="${index}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            cartBody.appendChild(row);
+            totalAmount += item.price * item.quantity;
+        });
+        totalDisplay.textContent = totalAmount.toFixed(2);
+        updateRemainingAmount();
+        attachCartListeners();
+    }
+
+    function attachCartListeners() {
+        document.querySelectorAll('.cart-qty-input').forEach(input => {
+            input.removeEventListener('change', handleQuantityChange);
+            input.addEventListener('change', handleQuantityChange);
+        });
+        document.querySelectorAll('.remove-item-btn').forEach(button => {
+            button.removeEventListener('click', handleRemoveItem);
+            button.addEventListener('click', handleRemoveItem);
+        });
+    }
+
+    function handleQuantityChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        if (isNaN(index) || !cart[index]) return;
+        let value = parseInt(event.target.value, 10);
+        if (isNaN(value) || value < 1) {
+            value = 1;
+        }
+            if (value > cart[index].available) {
+                value = cart[index].available;
+                setFeedback('الكمية أكبر من المخزون المتاح.', true);
+        } else {
+            setFeedback('');
+        }
+        cart[index].quantity = value;
+        renderCart();
+    }
+
+    function handleRemoveItem(event) {
+        const index = parseInt(event.currentTarget.dataset.index, 10);
+        if (!isNaN(index)) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+    }
+
+    function addToCart(product, quantity) {
+        const existing = cart.find(item => item.id === product.id);
+        if (existing) {
+            const newQty = existing.quantity + quantity;
+            if (newQty > product.available) {
+                setFeedback('Quantity exceeds available stock.', true);
+                return;
+            }
+            existing.quantity = newQty;
+        } else {
+            if (quantity > product.available) {
+                setFeedback('الكمية أكبر من المخزون المتاح.', true);
+                return;
+            }
+            cart.push({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                quantity: quantity,
+                available: product.available
+            });
+        }
+        setFeedback(`${product.name} أضيف إلى السلة.`);
+        renderCart();
+    }
+
+    async function handleAddProduct() {
+        const code = productCodeInput.value.trim();
+        const quantity = parseInt(quantityInput.value, 10) || 1;
+        if (!code) {
+            setFeedback('يرجى إدخال كود المنتج أو مسحه.', true);
+            return;
+        }
+        try {
+            const response = await fetch(`${productInfoUrl}?code=${encodeURIComponent(code)}`);
+            const data = await response.json();
+            if (!response.ok) {
+                setFeedback(data.error || 'لم يتم العثور على المنتج.', true);
+                return;
+            }
+            addToCart(data, quantity);
+            productCodeInput.value = '';
+            quantityInput.value = 1;
+            productCodeInput.focus();
+        } catch (err) {
+            setFeedback('لا يمكن البحث عن المنتج حالياً.', true);
+        }
+    }
+
+    function prepareCartInputs() {
+        itemsContainer.innerHTML = '';
+        cart.forEach((item, index) => {
+            const createHidden = (name, value) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = `items-${index}-${name}`;
+                input.value = value;
+                itemsContainer.appendChild(input);
+            };
+            createHidden('product_id', item.id);
+            createHidden('quantity', item.quantity);
+            createHidden('price', item.price);
+        });
+    }
+
+    const addHandler = () => handleAddProduct();
+    addButton.addEventListener('click', addHandler);
+    productCodeInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addHandler();
+        }
+    });
+
+    document.getElementById('complete-sale-btn').addEventListener('click', function () {
+        if (cart.length === 0) {
+            alert('أضف منتجاً واحداً على الأقل لإتمام البيع.');
+            return;
+        }
+        prepareCartInputs();
+        form.submit();
+    });
+
+    if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener('change', toggleCreditDetails);
+    }
+    if (amountPaidInput) {
+        amountPaidInput.addEventListener('input', updateRemainingAmount);
+    }
+    toggleCreditDetails();
+});
+</script>
+{% endblock %}

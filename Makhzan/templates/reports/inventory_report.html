@@ -1,0 +1,99 @@
+{% extends "base_report.html" %}
+
+{% block title %}تقرير المخزون - نظام إدارة المخزن{% endblock %}
+
+{% block report_title %}تقرير المخزون{% endblock %}
+
+{% block report_subtitle %}
+{% if status == 'low' %}
+المنتجات منخفضة المخزون
+{% elif status == 'out' %}
+المنتجات التي نفذت
+{% else %}
+جميع المنتجات
+{% endif %}
+{% endblock %}
+
+{% block report_content %}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">إجمالي المنتجات</h5>
+                <h2 class="card-text">{{ inventory|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">المنتجات منخفضة المخزون</h5>
+                <h2 class="card-text">{{ low_stock_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">المنتجات التي نفذت</h5>
+                <h2 class="card-text">{{ out_of_stock_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">قائمة المخزون</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>المنتج</th>
+                        <th>التصنيف</th>
+                        <th>الكمية المتاحة</th>
+                        <th>الحد الأدنى</th>
+                        <th>سعر الشراء</th>
+                        <th>سعر البيع</th>
+                        <th>القيمة الإجمالية</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ item[0].name }}</td>
+                        <td>{{ item[0].category.name if item[0].category else 'بدون تصنيف' }}</td>
+                        <td>{{ item[1].quantity }}</td>
+                        <td>{{ item[0].min_quantity }}</td>
+                        <td>{{ "%.2f"|format(item[0].purchase_price) }}</td>
+                        <td>{{ "%.2f"|format(item[0].sale_price) }}</td>
+                        <td>{{ "%.2f"|format(item[1].quantity * item[0].purchase_price) }}</td>
+                        <td>
+                            {% if item[1].quantity <= 0 %}
+                            <span class="badge bg-danger">نفذت الكمية</span>
+                            {% elif item[1].quantity <= item[0].min_quantity %}
+                            <span class="badge bg-warning">منخفضة</span>
+                            {% else %}
+                            <span class="badge bg-success">متوفر</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="7">إجمالي قيمة المخزون:</th>
+                        <th>{{ "%.2f"|format(total_value) }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

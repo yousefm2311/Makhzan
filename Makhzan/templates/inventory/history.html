@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}سجل حركة المخزون - نظام إدارة المخزن{% endblock %}
+
+{% block header %}سجل حركة المخزون: {{ product.name }}{% endblock %}
+
+{% block header_buttons %}
+<a href="{{ url_for('inventory') }}" class="btn btn-sm btn-secondary">
+    <i class="fas fa-arrow-right"></i> العودة للمخزون
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>التاريخ</th>
+                        <th>نوع الحركة</th>
+                        <th>الكمية قبل</th>
+                        <th>التغيير</th>
+                        <th>الكمية بعد</th>
+                        <th>المرجع</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in history %}
+                    <tr>
+                        <td>{{ record.id }}</td>
+                        <td>{{ record.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if record.transaction_type == 'purchase' %}
+                            <span class="badge bg-primary">شراء</span>
+                            {% elif record.transaction_type == 'sale' %}
+                            <span class="badge bg-success">بيع</span>
+                            {% elif record.transaction_type == 'adjustment' %}
+                            <span class="badge bg-info">تعديل</span>
+                            {% elif record.transaction_type == 'return' %}
+                            <span class="badge bg-warning">مرتجع</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ record.transaction_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.quantity_before }}</td>
+                        <td>
+                            {% if record.quantity_change > 0 %}
+                            <span class="text-success">+{{ record.quantity_change }}</span>
+                            {% else %}
+                            <span class="text-danger">{{ record.quantity_change }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.quantity_after }}</td>
+                        <td>
+                            {% if record.reference_type == 'purchase' and record.reference_id %}
+                            <a href="{{ url_for('view_purchase', id=record.reference_id) }}">فاتورة شراء #{{ record.reference_id }}</a>
+                            {% elif record.reference_type == 'sale' and record.reference_id %}
+                            <a href="{{ url_for('view_sale', id=record.reference_id) }}">فاتورة بيع #{{ record.reference_id }}</a>
+                            {% elif record.reference_type == 'adjustment' %}
+                            تعديل يدوي
+                            {% else %}
+                            {{ record.reference_type }} #{{ record.reference_id }}
+                            {% endif %}
+                        </td>
+                        <td>{{ record.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

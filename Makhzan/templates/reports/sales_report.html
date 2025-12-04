@@ -1,0 +1,362 @@
+{% extends "base_report.html" %}
+
+{% block title %}تقرير المبيعات - نظام إدارة المخزن{% endblock %}
+
+{% block report_title %}تقرير المبيعات{% endblock %}
+
+{% block report_subtitle %}
+من {{ start_date.strftime('%Y-%m-%d') }} إلى {{ end_date.strftime('%Y-%m-%d') }}
+{% endblock %}
+
+{% block report_content %}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">إجمالي المبيعات</h5>
+                <h2 class="card-text">{{ "%.2f"|format(total_sales) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">عدد الفواتير</h5>
+                <h2 class="card-text">{{ sales|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">متوسط قيمة الفاتورة</h5>
+                <h2 class="card-text">{{ "%.2f"|format(average_sale) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report_type == 'summary' %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">ملخص المبيعات</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>عدد الفواتير</th>
+                        <th>إجمالي المبيعات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date, data in sales_by_date.items() %}
+                    <tr>
+                        <td>{{ date }}</td>
+                        <td>{{ data.count }}</td>
+                        <td>{{ "%.2f"|format(data.total) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>الإجمالي</th>
+                        <th>{{ sales|length }}</th>
+                        <th>{{ "%.2f"|format(total_sales) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">المبيعات حسب طريقة الدفع</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>طريقة الدفع</th>
+                                <th>عدد الفواتير</th>
+                                <th>إجمالي المبيعات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for method, data in sales_by_payment.items() %}
+                            <tr>
+                                <td>
+                                    {% if method == 'cash' %}
+                                    نقدي
+                                    {% elif method == 'card' %}
+                                    بطاقة ائتمان
+                                    {% elif method == 'transfer' %}
+                                    تحويل بنكي
+                                    {% else %}
+                                    {{ method }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ data.count }}</td>
+                                <td>{{ "%.2f"|format(data.total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">المبيعات حسب العملاء</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>العميل</th>
+                                <th>عدد الفواتير</th>
+                                <th>إجمالي المبيعات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer, data in sales_by_customer.items() %}
+                            <tr>
+                                <td>{{ customer }}</td>
+                                <td>{{ data.count }}</td>
+                                <td>{{ "%.2f"|format(data.total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">تفاصيل المبيعات</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>التاريخ</th>
+                        <th>العميل</th>
+                        <th>طريقة الدفع</th>
+                        <th>المبلغ</th>
+                        <th>المتبقي</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('view_sale', id=sale.id) }}" target="_blank">
+                                {{ sale.invoice_number }}
+                            </a>
+                        </td>
+                        <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ sale.customer.name if sale.customer else 'غير محدد' }}</td>
+                        <td>
+                            {% if sale.payment_method == 'cash' %}
+                            نقدي
+                            {% elif sale.payment_method == 'card' %}
+                            بطاقة ائتمان
+                            {% elif sale.payment_method == 'transfer' %}
+                            تحويل بنكي
+                            {% else %}
+                            {{ sale.payment_method }}
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.2f"|format(sale.total_amount) }}</td>
+                        <td>
+                            {% if sale.payment_method == 'majel' and sale.due_amount > 0 %}
+                            {{ "%.2f"|format(sale.due_amount) }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sale.status == 'completed' %}
+                            <span class="badge bg-success">مكتملة</span>
+                            {% elif sale.status == 'cancelled' %}
+                            <span class="badge bg-danger">ملغية</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ sale.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="5">الإجمالي</th>
+                        <th>{{ "%.2f"|format(total_sales) }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h4 class="mb-3">تفاصيل الفواتير حسب الحالة</h4>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <div class="d-flex justify-content-between">
+                    <span>المبيعات المكتملة</span>
+                    <span>عدد: {{ completed_sales|length }} — الإجمالي: {{ "%.2f"|format(completed_total) }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if completed_sales %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>التاريخ</th>
+                                <th>العميل</th>
+                                <th>طريقة الدفع</th>
+                                <th>المبلغ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in completed_sales %}
+                            <tr>
+                                <td>{{ sale.invoice_number }}</td>
+                                <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ sale.customer.name if sale.customer else 'غير محدد' }}</td>
+                                <td>{{ sale.payment_method }}</td>
+                                <td>{{ "%.2f"|format(sale.total_amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">لا توجد فواتير مكتملة ضمن الفترة.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <div class="d-flex justify-content-between">
+                    <span>المبيعات الملغاة</span>
+                    <span>عدد: {{ cancelled_sales|length }} — الإجمالي: {{ "%.2f"|format(cancelled_total) }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if cancelled_sales %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>التاريخ</th>
+                                <th>العميل</th>
+                                <th>المبلغ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in cancelled_sales %}
+                            <tr>
+                                <td>{{ sale.invoice_number }}</td>
+                                <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ sale.customer.name if sale.customer else 'غير محدد' }}</td>
+                                <td>{{ "%.2f"|format(sale.total_amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">لا توجد فواتير ملغاة ضمن الفترة.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <div class="d-flex justify-content-between">
+                    <span>الفواتير الماجلة</span>
+                    <span>عدد: {{ majel_sales|length }} — إجمالي المبيعات: {{ "%.2f"|format(majel_total) }} — الباقي: {{ "%.2f"|format(majel_due_total) }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if majel_sales %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>التاريخ</th>
+                                <th>العميل</th>
+                                <th>المبلغ</th>
+                                <th>المتبقي</th>
+                                <th>حالة الماجل</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in majel_sales %}
+                            <tr>
+                                <td>{{ sale.invoice_number }}</td>
+                                <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ sale.customer.name if sale.customer else 'غير محدد' }}</td>
+                                <td>{{ "%.2f"|format(sale.total_amount) }}</td>
+                                <td>{{ "%.2f"|format(sale.due_amount) }}</td>
+                                <td>
+                                    {% if sale.due_amount <= 0 %}
+                                    <span class="badge bg-success text-dark">تم السداد</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">قيد السداد</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">لا توجد مبيعات ماجلة ضمن الفترة.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">صافي بعد الماجل</h5>
+                <h2 class="card-text">{{ "%.2f"|format(net_after_due) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

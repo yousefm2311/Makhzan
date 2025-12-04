@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}نظام إدارة المخزن{% endblock %}</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Theme CSS -->
+    <link id="theme-style" rel="stylesheet" href="{{ url_for('static', filename='css/' + (settings.get('theme', 'light') if settings else 'light') + '.css') }}">
+    <script>
+      function toggleTheme() {
+        var current = '{{ settings.get('theme', 'light') if settings else 'light' }}';
+        var newTheme = current === 'dark' ? 'light' : 'dark';
+        console.log('Current theme:', current, 'Switching to:', newTheme);
+        fetch('/settings/theme', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({theme: newTheme})
+        }).then((resp) => {
+          console.log('Theme switch response:', resp.status);
+          location.reload();
+        });
+      }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+            color: #fff;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.75);
+            padding: 0.5rem 1rem;
+            margin: 0.2rem 0;
+            border-radius: 0.25rem;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link.active {
+            color: #fff;
+            background-color: #0d6efd;
+        }
+        
+        .sidebar .nav-link i {
+            margin-left: 0.5rem;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 1rem;
+        }
+        
+        .card {
+            margin-bottom: 1.5rem;
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+            font-weight: 500;
+        }
+        
+        .table th {
+            font-weight: 500;
+        }
+        
+        .btn-icon {
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .dropdown-menu {
+            text-align: right;
+        }
+    </style>
+    
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4>{{ settings['store_name'] }}</h4>
+                    </div>
+                    
+                                        <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" href="{{ url_for('index') }}">
+                                <i class="fas fa-tachometer-alt"></i> لوحة القيادة
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('products')) %}active{% endif %}" href="{{ url_for('products') }}">
+                                <i class="fas fa-box"></i> المنتجات
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('categories')) %}active{% endif %}" href="{{ url_for('categories') }}">
+                                <i class="fas fa-tags"></i> التصنيفات
+                            </a>
+                        </li>
+                        {% if current_user.role == 'admin' %}
+                        <li class="nav-item">
+                            {% set purchases_path = url_for('purchases') %}
+                            {% set purchases_due_path = url_for('purchases_due') %}
+                            <a class="nav-link {% if request.path.startswith(purchases_path) and not request.path.startswith(purchases_due_path) %}active{% endif %}" href="{{ purchases_path }}">
+                                <i class="fas fa-shopping-cart"></i> المشتريات
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('purchases_due')) %}active{% endif %}" href="{{ url_for('purchases_due') }}">
+                                <i class="fas fa-calendar-check"></i> الفواتير الآجلة
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('cashier_logs')) %}active{% endif %}" href="{{ url_for('cashier_logs') }}">
+                                <i class="fas fa-list"></i> سجل الكاشير
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if current_user.role in ['cashier', 'admin'] %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('cashier_pos')) %}active{% endif %}" href="{{ url_for('cashier_pos') }}">
+                                <i class="fas fa-barcode"></i> الكاشير
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            {% set sales_path = url_for('sales') %}
+                            {% set sales_due_path = url_for('sales_due') %}
+                            <a class="nav-link {% if request.path.startswith(sales_path) and not request.path.startswith(sales_due_path) %}active{% endif %}" href="{{ sales_path }}">
+                                <i class="fas fa-cash-register"></i> المبيعات
+                            </a>
+                        </li>
+                        {% if current_user.role == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('sales_due')) %}active{% endif %}" href="{{ url_for('sales_due') }}">
+                                <i class="fas fa-calendar-check"></i> مبيعات آجلة
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('suppliers')) %}active{% endif %}" href="{{ url_for('suppliers') }}">
+                                <i class="fas fa-truck"></i> الموردين
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('customers')) %}active{% endif %}" href="{{ url_for('customers') }}">
+                                <i class="fas fa-users"></i> العملاء
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('inventory')) %}active{% endif %}" href="{{ url_for('inventory') }}">
+                                <i class="fas fa-warehouse"></i> المخزون
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('reports')) %}active{% endif %}" href="{{ url_for('reports') }}">
+                                <i class="fas fa-chart-bar"></i> التقارير
+                            </a>
+                        </li>
+                        {% if current_user.role == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('users')) %}active{% endif %}" href="{{ url_for('users') }}">
+                                <i class="fas fa-user-cog"></i> المستخدمين
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('settings')) %}active{% endif %}" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog"></i> الإعدادات
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('catalog_import')) %}active{% endif %}" href="{{ url_for('catalog_import') }}">
+                                <i class="fas fa-file-import"></i> استيراد المنتجات
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path.startswith(url_for('category_catalog_import')) %}active{% endif %}" href="{{ url_for('category_catalog_import') }}">
+                                <i class="fas fa-list-alt"></i> استيراد التصنيفات
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+
+                </div>
+            </div>
+            
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">{% block header %}{% endblock %}</h1>
+                    <div>
+                        {% block header_buttons %}{% endblock %}
+                        {# <button onclick="toggleTheme()" class="btn btn-sm btn-outline-secondary ms-2">تبديل السمة</button> #}
+                    </div>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user"></i>
+                                {{ current_user.username }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}">الملف الشخصي</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">تسجيل الخروج</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

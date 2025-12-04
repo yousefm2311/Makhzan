@@ -1,0 +1,77 @@
+body { background: #18191a; color: #eee; }
+.card, .table { background: #23272b; color: #eee; }
+.navbar, .sidebar { background: #23272b; color: #eee; }
+
+/* Buttons */
+.btn, .btn-primary, .btn-secondary, .btn-outline-secondary, .btn-success, .btn-danger, .btn-info, .btn-warning {
+  background-color: #23272b;
+  color: #eee;
+  border-color: #444;
+}
+.btn:hover, .btn:focus {
+  background-color: #343a40;
+  color: #fff;
+}
+
+/* Links */
+a, .nav-link {
+  color: #90caf9;
+}
+a:hover, .nav-link:hover {
+  color: #42a5f5;
+}
+
+/* Table headers */
+.table th, .card-header {
+  background: #18191a;
+  color: #90caf9;
+}
+
+/* Alerts */
+.alert {
+  background: #23272b;
+  color: #eee;
+  border-color: #444;
+}
+
+/* Form controls */
+.form-control, .form-select {
+  background: #23272b;
+  color: #eee;
+  border-color: #444;
+}
+.form-control:focus, .form-select:focus {
+  background: #18191a;
+  color: #fff;
+  border-color: #90caf9;
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+  background: #23272b;
+  color: #eee;
+}
+.dropdown-item {
+  color: #eee;
+}
+.dropdown-item:hover, .dropdown-item:focus {
+  background: #18191a;
+  color: #90caf9;
+}
+
+/* Misc */
+hr, .border-bottom {
+  border-color: #444 !important;
+}
+html, body, .container, .main-content {
+  background-color: #18191a !important;
+  color: #eee !important;
+}
+* {
+  background-color: inherit !important;
+  color: inherit !important;
+}
+.card-body, .page-header {
+  background-color: #23272b !important;
+  color: #eee !important;
+} 

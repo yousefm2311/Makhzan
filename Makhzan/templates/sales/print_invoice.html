@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورة بيع #{{ sale.invoice_number }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.rtl.min.css') }}">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .invoice-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .company-name {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .invoice-details {
+            margin-bottom: 20px;
+        }
+        .customer-details {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: right;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .total-row {
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+                margin: 15mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="invoice-header">
+            <div class="invoice-title">فاتورة بيع</div>
+            <div class="company-name">نظام إدارة المخزن</div>
+            <div>{{ company_info.address if company_info else '' }}</div>
+            <div>هاتف: {{ company_info.phone if company_info else '' }}</div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 invoice-details">
+                <table class="table table-sm">
+                    <tr>
+                        <th>رقم الفاتورة:</th>
+                        <td>{{ sale.invoice_number }}</td>
+                    </tr>
+                    <tr>
+                        <th>تاريخ الفاتورة:</th>
+                        <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    <tr>
+                        <th>طريقة الدفع:</th>
+                        <td>
+                            {% if sale.payment_method == 'cash' %}
+                            نقدي
+                            {% elif sale.payment_method == 'card' %}
+                            بطاقة ائتمان
+                            {% elif sale.payment_method == 'transfer' %}
+                            تحويل بنكي
+                            {% else %}
+                            {{ sale.payment_method }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="col-md-6 customer-details">
+                <table class="table table-sm">
+                    <tr>
+                        <th>العميل:</th>
+                        <td>{{ sale.customer.name if sale.customer else 'غير محدد' }}</td>
+                    </tr>
+                    {% if sale.customer %}
+                    <tr>
+                        <th>العنوان:</th>
+                        <td>{{ sale.customer.address }}</td>
+                    </tr>
+                    <tr>
+                        <th>الهاتف:</th>
+                        <td>{{ sale.customer.phone }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        
+        <div class="items-table">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>المنتج</th>
+                        <th>الكمية</th>
+                        <th>السعر</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sale.items %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ "%.2f"|format(item.price) }}</td>
+                        <td>{{ "%.2f"|format(item.quantity * item.price) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <th colspan="4" class="text-end">المجموع:</th>
+                        <th>{{ "%.2f"|format(sale.total_amount) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        {% if sale.notes %}
+        <div class="notes mt-4">
+            <h6>ملاحظات:</h6>
+            <p>{{ sale.notes }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>شكراً لتعاملكم معنا</p>
+        </div>
+        
+        <div class="no-print mt-4 text-center">
+            <button class="btn btn-primary" onclick="window.print()">طباعة الفاتورة</button>
+            <button class="btn btn-secondary" onclick="window.close()">إغلاق</button>
+        </div>
+    </div>
+</body>
+</html>

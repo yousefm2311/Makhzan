@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}فواتير البيع الآجلة{% endblock %}
+
+{% block header %}فواتير البيع الآجلة{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>العميل</th>
+                        <th>تاريخ البيع</th>
+                        <th>الإجمالي</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>تاريخ الاستحقاق</th>
+                        <th>بريد الإشعار</th>
+                        <th>الإشعار</th>
+                        <th class="text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in due_sales %}
+                        <tr>
+                            <td><a href="{{ url_for('view_sale', id=sale.id) }}">{{ sale.invoice_number }}</a></td>
+                            <td>{{ sale.customer.name if sale.customer else 'عميل عام' }}</td>
+                            <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ '%.2f' | format(sale.total_amount) }}</td>
+                            <td>{{ '%.2f' | format(sale.amount_paid) }}</td>
+                            <td>{{ '%.2f' | format(sale.due_amount) }}</td>
+                            <td>{{ sale.due_date.strftime('%Y-%m-%d') if sale.due_date else 'غير محدد' }}</td>
+                            <td>{{ sale.contact_email or 'غير متوفر' }}</td>
+                            <td>
+                                {% if sale.due_reminder_sent %}
+                                    <span class="badge bg-success">تم الإشعار</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <form method="post" action="{{ url_for('notify_due_sale', id=sale.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('mark_sale_paid', id=sale.id) }}" class="d-inline ms-1">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center">لا توجد فواتير آجلة</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

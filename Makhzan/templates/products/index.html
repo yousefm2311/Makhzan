@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}المنتجات - نظام إدارة المخزن{% endblock %}
+
+{% block header %}المنتجات{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('add_product') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> إضافة منتج جديد
+        </a>
+        {% endif %}
+    </div>
+    <div class="d-flex">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="بحث...">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="productsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم المنتج</th>
+                        <th>الباركود</th>
+                        <th>التصنيف</th>
+                        <th>سعر الشراء</th>
+                        <th>سعر البيع</th>
+                        <th>الكمية المتاحة</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.barcode or '-' }}</td>
+                        <td>{{ product.category.name if product.category else 'بدون تصنيف' }}</td>
+                        {% if current_user.role == 'admin' %}
+                        <td>{{ "%.2f"|format(product.purchase_price) }}</td>
+                        {% else %}
+                        <td>-</td>
+                        {% endif %}
+                        <td>{{ "%.2f"|format(product.sale_price) }}</td>
+                        <td>{{ product.inventory.quantity if product.inventory else 0 }}</td>
+                        <td>
+                            {% if product.inventory and product.inventory.quantity <= 0 %}
+                            <span class="badge bg-danger">نفذت الكمية</span>
+                            {% elif product.inventory and product.inventory.quantity <= product.min_quantity %}
+                            <span class="badge bg-warning">منخفضة</span>
+                            {% else %}
+                            <span class="badge bg-success">متوفر</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_user.role == 'admin' %}
+                            <div class="btn-group">
+                                <a href="{{ url_for('edit_product', id=product.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ product.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <!-- Delete Modal -->
+                            <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteModalLabel{{ product.id }}">تأكيد الحذف</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            هل أنت متأكد من حذف المنتج "{{ product.name }}"؟
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                            <form action="{{ url_for('delete_product', id=product.id) }}" method="POST">
+                                                <button type="submit" class="btn btn-danger">حذف</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center">لا توجد منتجات</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const productsTable = document.getElementById('productsTable');
+        const rows = productsTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        searchInput.addEventListener('keyup', function() {
+            const searchText = searchInput.value.toLowerCase();
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.getElementsByTagName('td');
+                let found = false;
+                
+                for (let j = 0; j < cells.length; j++) {
+                    const cellText = cells[j].textContent.toLowerCase();
+                    
+                    if (cellText.indexOf(searchText) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (found) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}تقرير - نظام إدارة المخزن{% endblock %}</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            .card {
+                border: none;
+            }
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .report-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .report-subtitle {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .report-date {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .company-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .company-logo {
+            max-width: 150px;
+            margin-bottom: 10px;
+        }
+        
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .company-address {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .print-buttons {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="print-buttons no-print text-end mb-3">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> طباعة
+            </button>
+            <button class="btn btn-secondary" onclick="window.close()">
+                <i class="fas fa-times"></i> إغلاق
+            </button>
+        </div>
+        
+        <div class="company-info">
+            {% if company_logo %}
+            <img src="{{ company_logo }}" alt="شعار الشركة" class="company-logo">
+            {% endif %}
+            <div class="company-name">{{ company_name|default('نظام إدارة المخزن') }}</div>
+            <div class="company-address">{{ company_address|default('') }}</div>
+        </div>
+        
+        <div class="report-header">
+            <div class="report-title">{% block report_title %}تقرير{% endblock %}</div>
+            <div class="report-subtitle">{% block report_subtitle %}{% endblock %}</div>
+            <div class="report-date">تاريخ التقرير: {{ now.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+        
+        <div class="report-content">
+            {% block report_content %}{% endblock %}
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="small text-muted">© {{ now.year }} نظام إدارة المخزن - جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

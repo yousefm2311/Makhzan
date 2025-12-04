@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}استلام فاتورة شراء - نظام إدارة المخزن{% endblock %}
+
+{% block header %}استلام فاتورة شراء رقم: {{ purchase.invoice_number }}{% endblock %}
+
+{% block header_buttons %}
+<a href="{{ url_for('view_purchase', id=purchase.id) }}" class="btn btn-sm btn-secondary">
+    <i class="fas fa-arrow-right"></i> العودة للفاتورة
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">معلومات الفاتورة</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>رقم الفاتورة:</strong> {{ purchase.invoice_number }}</p>
+                        <p><strong>تاريخ الشراء:</strong> {{ purchase.purchase_date.strftime('%Y-%m-%d') }}</p>
+                        <p><strong>المورد:</strong> {{ purchase.supplier.name if purchase.supplier else 'غير محدد' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>المبلغ الإجمالي:</strong> {{ "%.2f"|format(purchase.total_amount) }}</p>
+                        <p><strong>تاريخ الاستلام المتوقع:</strong> {{ purchase.expected_receipt_date.strftime('%Y-%m-%d') if purchase.expected_receipt_date else 'غير محدد' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">استلام المنتجات</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('receive_purchase', id=purchase.id) }}">
+                    <div class="mb-3">
+                        <label for="received_date" class="form-label">تاريخ الاستلام</label>
+                        <input type="date" class="form-control" id="received_date" name="received_date" value="{{ now().strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>المنتج</th>
+                                    <th>الكمية المطلوبة</th>
+                                    <th>الكمية المستلمة</th>
+                                    <th>ملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in purchase.items %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>
+                                        <input type="number" class="form-control" name="received_quantity_{{ item.id }}" value="{{ item.quantity }}" min="0" max="{{ item.quantity }}" required>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control" name="item_note_{{ item.id }}" placeholder="ملاحظات عن المنتج">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">ملاحظات عامة</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="ملاحظات عن عملية الاستلام"></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 col-md-4 mx-auto mt-4">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> تأكيد الاستلام
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

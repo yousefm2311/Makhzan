@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}حركات المخزون - نظام إدارة المخزن{% endblock %}
+
+{% block header %}حركات المخزون{% endblock %}
+
+{% block header_buttons %}
+<a href="{{ url_for('inventory') }}" class="btn btn-sm btn-secondary">
+    <i class="fas fa-arrow-right"></i> العودة للمخزون
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>نوع الحركة</th>
+                        <th>الكمية</th>
+                        <th>المرجع</th>
+                        <th>الملاحظات</th>
+                        <th>التاريخ والوقت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movement, inventory, product in movements %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td>
+                            {% if movement.movement_type == 'in' %}
+                            <span class="badge bg-success">وارد</span>
+                            {% elif movement.movement_type == 'out' %}
+                            <span class="badge bg-danger">صادر</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ movement.movement_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ movement.quantity }}</td>
+                        <td>{{ movement.reference }}</td>
+                        <td>{{ movement.notes }}</td>
+                        <td>{{ movement.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

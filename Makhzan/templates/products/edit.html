@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل منتج - نظام إدارة المخزن{% endblock %}
+
+{% block header %}تعديل منتج: {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('edit_product', id=product.id) }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    {{ form.category_id.label(class="form-label") }}
+                    {{ form.category_id(class="form-select") }}
+                    {% if form.category_id.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.category_id.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.barcode.label(class="form-label") }}
+                    {{ form.barcode(class="form-control") }}
+                    {% if form.barcode.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.barcode.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    {{ form.sku.label(class="form-label") }}
+                    {{ form.sku(class="form-control") }}
+                    {% if form.sku.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.sku.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                {% if current_user.role == 'admin' %}
+                <div class="col-md-4 mb-3">
+                    {{ form.purchase_price.label(class="form-label") }}
+                    {{ form.purchase_price(class="form-control") }}
+                    {% if form.purchase_price.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.purchase_price.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="col-md-4 mb-3">
+                    {{ form.sale_price.label(class="form-label") }}
+                    {{ form.sale_price(class="form-control") }}
+                    {% if form.sale_price.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.sale_price.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    {{ form.min_quantity.label(class="form-label") }}
+                    {{ form.min_quantity(class="form-control") }}
+                    {% if form.min_quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.min_quantity.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.initial_quantity.label(class="form-label") }}
+                    {{ form.initial_quantity(class="form-control") }}
+                    {% if form.initial_quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.initial_quantity.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control", rows=3) }}
+                {% if form.description.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.description.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('products') }}" class="btn btn-secondary">إلغاء</a>
+                <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

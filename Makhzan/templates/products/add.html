@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة منتج جديد - نظام إدارة المخزن{% endblock %}
+
+{% block header %}إضافة منتج جديد{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('add_product') }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control", id="name-input") }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    {{ form.category_id.label(class="form-label") }}
+                    {{ form.category_id(class="form-select") }}
+                    {% if form.category_id.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.category_id.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.barcode.label(class="form-label") }}
+                    <div class="input-group">
+                        {{ form.barcode(class="form-control", id="barcode-input", autocomplete="off") }}
+                        <button type="button" class="btn btn-outline-secondary" id="barcodeScannerBtn" title="استخدم قارئ الباركود">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                    </div>
+                    <div id="reference-feedback" class="form-text text-muted mt-1"></div>
+                    {% if form.barcode.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.barcode.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    {{ form.sku.label(class="form-label") }}
+                    {{ form.sku(class="form-control", id="sku-input") }}
+                    {% if form.sku.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.sku.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                {% if current_user.role == 'admin' %}
+                <div class="col-md-4 mb-3">
+                    {{ form.purchase_price.label(class="form-label") }}
+                    {{ form.purchase_price(class="form-control") }}
+                    {% if form.purchase_price.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.purchase_price.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="col-md-4 mb-3">
+                    {{ form.sale_price.label(class="form-label") }}
+                    {{ form.sale_price(class="form-control") }}
+                    {% if form.sale_price.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.sale_price.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    {{ form.min_quantity.label(class="form-label") }}
+                    {{ form.min_quantity(class="form-control") }}
+                    {% if form.min_quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.min_quantity.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.initial_quantity.label(class="form-label") }}
+                    {{ form.initial_quantity(class="form-control") }}
+                    {% if form.initial_quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.initial_quantity.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control", rows=3, id="description-input") }}
+                {% if form.description.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.description.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('products') }}" class="btn btn-secondary">إلغاء</a>
+                <button type="submit" class="btn btn-primary">حفظ</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var barcodeInput = document.getElementById('barcode-input');
+    var nameInput = document.getElementById('name-input');
+    var skuInput = document.getElementById('sku-input');
+    var descriptionInput = document.getElementById('description-input');
+    var feedback = document.getElementById('reference-feedback');
+    var scannerBtn = document.getElementById('barcodeScannerBtn');
+
+    function updateFeedback(message, isError) {
+        if (!feedback) {
+            return;
+        }
+        feedback.textContent = message || '';
+        feedback.classList.toggle('text-danger', Boolean(isError));
+        feedback.classList.toggle('text-success', Boolean(message && !isError));
+        if (!message) {
+            feedback.classList.remove('text-success', 'text-danger');
+        }
+    }
+
+    function loadReference(code) {
+        if (!code) {
+            updateFeedback('');
+            return;
+        }
+        fetch('/reference/product-info?code=' + encodeURIComponent(code))
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('not found');
+                }
+                return response.json();
+            })
+            .then(function (data) {
+                if (nameInput && !nameInput.value.trim()) {
+                    nameInput.value = data.name || '';
+                }
+                if (skuInput && !skuInput.value.trim() && data.sku) {
+                    skuInput.value = data.sku;
+                }
+                if (descriptionInput && !descriptionInput.value.trim()) {
+                    const referenceDescription = data.notes || data.description || '';
+                    if (referenceDescription) {
+                        descriptionInput.value = referenceDescription;
+                    }
+                }
+                updateFeedback('Reference data loaded from ' + (data.source_file || 'reference catalog') + '.', false);
+            })
+            .catch(function (error) {
+                if (error.message === 'not found') {
+                    updateFeedback('No reference entry found for this code.', true);
+                } else {
+                    updateFeedback('Failed to load reference data.', true);
+                    console.error(error);
+                }
+            });
+    }
+
+    if (barcodeInput) {
+        barcodeInput.addEventListener('blur', function () {
+            loadReference(this.value.trim());
+        });
+        barcodeInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                loadReference(this.value.trim());
+            }
+        });
+        if (barcodeInput.value.trim()) {
+            loadReference(barcodeInput.value.trim());
+        }
+    }
+
+    if (scannerBtn && barcodeInput) {
+        scannerBtn.addEventListener('click', function () {
+            barcodeInput.focus();
+            updateFeedback('Focus on the barcode field and press Enter to load reference data.', false);
+        });
+    }
+});
+</script>
+{% endblock %}
+

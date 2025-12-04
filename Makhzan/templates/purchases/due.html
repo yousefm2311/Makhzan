@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}فواتير الشراء الآجلة{% endblock %}
+
+{% block header %}فواتير الشراء الآجلة{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>المورد</th>
+                        <th>تاريخ الشراء</th>
+                        <th>الإجمالي</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>تاريخ الاستحقاق</th>
+                        <th>بريد الإشعار</th>
+                        <th>الإشعار</th>
+                        <th class="text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for purchase in due_purchases %}
+                        <tr>
+                            <td><a href="{{ url_for('view_purchase', id=purchase.id) }}">{{ purchase.invoice_number }}</a></td>
+                            <td>{{ purchase.supplier.name if purchase.supplier else 'مورد عام' }}</td>
+                            <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ '%.2f' | format(purchase.total_amount) }}</td>
+                            <td>{{ '%.2f' | format(purchase.amount_paid) }}</td>
+                            <td>{{ '%.2f' | format(purchase.due_amount) }}</td>
+                            <td>{{ purchase.due_date.strftime('%Y-%m-%d') if purchase.due_date else 'غير محدد' }}</td>
+                            <td>{{ purchase.contact_email or 'غير متوفر' }}</td>
+                            <td>
+                                {% if purchase.due_reminder_sent %}
+                                    <span class="badge bg-success">تم الإشعار</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <form method="post" action="{{ url_for('notify_due_purchase', id=purchase.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('mark_purchase_paid', id=purchase.id) }}" class="d-inline ms-1">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center">لا توجد فواتير آجلة</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
