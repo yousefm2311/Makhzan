@@ -1184,19 +1184,104 @@ def top_selling_report():
     query = db.session.query(
         Product,
         db.func.sum(SaleItem.quantity).label('total_quantity')
-    ).join(SaleItem, SaleItem.product_id == Product.id)
-    
+    ).join(SaleItem, SaleItem.product_id == Product.id
+    ).join(Sale, Sale.id == SaleItem.sale_id)
+
     if start_date:
-        query = query.join(Sale, Sale.id == SaleItem.sale_id).filter(Sale.sale_date >= start_date)
+        query = query.filter(Sale.sale_date >= start_date)
     if end_date:
-        query = query.join(Sale, Sale.id == SaleItem.sale_id).filter(Sale.sale_date <= end_date)
-    else:
-        query = query.join(Sale, Sale.id == SaleItem.sale_id)
+        query = query.filter(Sale.sale_date <= end_date)
 
     query = query.group_by(Product.id).order_by(db.desc('total_quantity')).limit(limit)
     results = query.all()
 
     return render_template('reports/top_selling.html', results=results, start_date=start_date, end_date=end_date)
+
+@app.route('/reports/profit', methods=['GET'])
+@login_required
+@admin_required
+def profit_report():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    group_by = request.args.get('group_by', 'day')
+
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    items = db.session.query(SaleItem, Sale, Product).join(
+        Sale, SaleItem.sale_id == Sale.id
+    ).outerjoin(
+        Product, SaleItem.product_id == Product.id
+    ).filter(
+        Sale.sale_date.between(start_date, end_date)
+    ).all()
+
+    total_profit = 0
+    total_sales = 0
+    grouped = OrderedDict()
+    for sale_item, sale, product in items:
+        sale_profit = 0
+        if product and product.purchase_price is not None:
+            sale_profit = (sale_item.price - product.purchase_price) * sale_item.quantity
+        total_profit += sale_profit
+        total_sales += sale_item.price * sale_item.quantity
+        if group_by == 'week':
+            week_label = f"{sale.sale_date.isocalendar()[0]}-{sale.sale_date.isocalendar()[1]}"
+            key = f"أسبوع {week_label}"
+        elif group_by == 'month':
+            key = sale.sale_date.strftime('%Y-%m')
+        else:
+            key = sale.sale_date.strftime('%Y-%m-%d')
+        bucket = grouped.setdefault(key, {'profit': 0, 'sales': 0})
+        bucket['profit'] += sale_profit
+        bucket['sales'] += sale_item.price * sale_item.quantity
+
+    summary = [{
+        'period': period,
+        'sales': data['sales'],
+        'profit': data['profit']
+    } for period, data in grouped.items()]
+
+    return render_template('reports/profit_report.html',
+                          total_profit=total_profit,
+                          total_sales=total_sales,
+                          summary=summary,
+                          start_date=start_date,
+                          end_date=end_date,
+                          group_by=group_by)
+
+
+@app.route('/reports/customers', methods=['GET'])
+@login_required
+@admin_required
+def customers_report():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    limit = request.args.get('limit', 10, type=int)
+
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    sales = Sale.query.filter(Sale.sale_date.between(start_date, end_date)).all()
+    customer_stats = defaultdict(lambda: {'total_amount': 0, 'count': 0})
+    for sale in sales:
+        key = sale.customer.name if sale.customer else 'عميل نقدي'
+        bucket = customer_stats[key]
+        bucket['total_amount'] += sale.total_amount
+        bucket['count'] += 1
+
+    results = sorted(customer_stats.items(), key=lambda item: item[1]['total_amount'], reverse=True)[:limit]
+
+    return render_template('reports/customers_report.html',
+                          results=results,
+                          start_date=start_date,
+                          end_date=end_date,
+                          limit=limit)
+
 
 # Users routes
 @app.route('/users')

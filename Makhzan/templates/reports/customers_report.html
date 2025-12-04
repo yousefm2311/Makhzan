@@ -1,0 +1,36 @@
+﻿{% extends "base.html" %}
+
+{% block title %}تقرير العملاء{% endblock %}
+{% block header %}تقرير العملاء{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted">من {{ start_date }} إلى {{ end_date }}</p>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>العميل</th>
+            <th>عدد الفواتير</th>
+            <th>الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for name, stats in results %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ stats.count }}</td>
+            <td>{{ stats.total_amount | round(2) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-center">لا توجد بيانات</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

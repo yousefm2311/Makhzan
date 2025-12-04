@@ -1,7 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}التقارير - نظام إدارة المخزن{% endblock %}
-
+{% block title %}التقارير{% endblock %}
 {% block header %}التقارير{% endblock %}
 
 {% block content %}
@@ -13,89 +12,89 @@
                 <h5 class="card-title mb-0">تقرير المبيعات</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">عرض تقرير المبيعات حسب الفترة الزمنية.</p>
+                <p class="card-text">تحليل المبيعات خلال فترة زمنية مع خيارات ملخصة أو مفصلة.</p>
                 <form action="{{ url_for('sales_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label for="start_date" class="form-label">من تاريخ:</label>
+                        <label class="form-label" for="start_date">من تاريخ</label>
                         <input type="date" class="form-control" id="start_date" name="start_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="end_date" class="form-label">إلى تاريخ:</label>
+                        <label class="form-label" for="end_date">إلى تاريخ</label>
                         <input type="date" class="form-control" id="end_date" name="end_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="report_type" class="form-label">نوع التقرير:</label>
+                        <label class="form-label" for="report_type">نوع التقرير</label>
                         <select class="form-select" id="report_type" name="report_type">
                             <option value="summary">ملخص</option>
                             <option value="detailed">تفصيلي</option>
                         </select>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض التقرير</button>
+                        <button type="submit" class="btn btn-primary">عرض تقرير المبيعات</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title mb-0">تقرير المشتريات</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">عرض تقرير المشتريات حسب الفترة الزمنية.</p>
+                <p class="card-text">مراجعة مشترياتك خلال فترة معينة لترتيب الموردين والمدفوعات.</p>
                 <form action="{{ url_for('purchases_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label for="start_date_p" class="form-label">من تاريخ:</label>
+                        <label class="form-label" for="start_date_p">من تاريخ</label>
                         <input type="date" class="form-control" id="start_date_p" name="start_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="end_date_p" class="form-label">إلى تاريخ:</label>
+                        <label class="form-label" for="end_date_p">إلى تاريخ</label>
                         <input type="date" class="form-control" id="end_date_p" name="end_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="report_type_p" class="form-label">نوع التقرير:</label>
+                        <label class="form-label" for="report_type_p">نوع التقرير</label>
                         <select class="form-select" id="report_type_p" name="report_type">
                             <option value="summary">ملخص</option>
                             <option value="detailed">تفصيلي</option>
                         </select>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض التقرير</button>
+                        <button type="submit" class="btn btn-primary">عرض تقرير المشتريات</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title mb-0">تقرير المخزون</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">عرض تقرير حالة المخزون الحالية.</p>
+                <p class="card-text">احصل على حالة المخزون بحسب الفئة أو حالة التوفر.</p>
                 <form action="{{ url_for('inventory_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label for="inventory_status" class="form-label">حالة المخزون:</label>
+                        <label class="form-label" for="inventory_status">حالة المخزون</label>
                         <select class="form-select" id="inventory_status" name="status">
-                            <option value="all">جميع المنتجات</option>
-                            <option value="low">المنتجات منخفضة المخزون</option>
-                            <option value="out">المنتجات التي نفذت</option>
+                            <option value="all">كل المنتجات</option>
+                            <option value="low">قريبة من النفاد</option>
+                            <option value="out">منفذة</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="category_id" class="form-label">التصنيف:</label>
+                        <label class="form-label" for="category_id">التصنيف</label>
                         <select class="form-select" id="category_id" name="category_id">
-                            <option value="">جميع التصنيفات</option>
+                            <option value="">كل التصنيفات</option>
                             {% for category in categories %}
                             <option value="{{ category.id }}">{{ category.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض التقرير</button>
+                        <button type="submit" class="btn btn-primary">عرض تقرير المخزون</button>
                     </div>
                 </form>
             </div>
@@ -107,101 +106,88 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
-                <h5 class="card-title mb-0">تقرير المنتجات الأكثر مبيعاً</h5>
+                <h5 class="card-title mb-0">المنتجات الأكثر مبيعاً</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">عرض تقرير بالمنتجات الأكثر مبيعاً خلال فترة زمنية.</p>
-                {# النموذج التالي معطل مؤقتاً لأن endpoint top_selling_report غير موجود #}
-                {#
+                <p class="card-text">تعرف على المنتجات التي حققت أعلى مبيعات خلال الفترة المحددة.</p>
                 <form action="{{ url_for('top_selling_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label for="start_date_ts" class="form-label">من تاريخ:</label>
+                        <label class="form-label" for="start_date_ts">من تاريخ</label>
                         <input type="date" class="form-control" id="start_date_ts" name="start_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="end_date_ts" class="form-label">إلى تاريخ:</label>
+                        <label class="form-label" for="end_date_ts">إلى تاريخ</label>
                         <input type="date" class="form-control" id="end_date_ts" name="end_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="limit" class="form-label">عدد المنتجات:</label>
+                        <label class="form-label" for="limit">عدد العناصر</label>
                         <input type="number" class="form-control" id="limit" name="limit" min="1" max="50" value="10">
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض التقرير</button>
+                        <button type="submit" class="btn btn-primary">عرض المنتجات</button>
                     </div>
                 </form>
-                #}
             </div>
         </div>
     </div>
-    
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title mb-0">تقرير الأرباح</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">عرض تقرير الأرباح خلال فترة زمنية.</p>
-                {# النموذج التالي معطل مؤقتاً لأن endpoint profit_report غير موجود #}
-                {#
+                <p class="card-text">تابع صافي الربح بالتجزئة اليومي أو الأسبوعي أو الشهري.</p>
                 <form action="{{ url_for('profit_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label for="start_date_pr" class="form-label">من تاريخ:</label>
+                        <label class="form-label" for="start_date_pr">من تاريخ</label>
                         <input type="date" class="form-control" id="start_date_pr" name="start_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="end_date_pr" class="form-label">إلى تاريخ:</label>
+                        <label class="form-label" for="end_date_pr">إلى تاريخ</label>
                         <input type="date" class="form-control" id="end_date_pr" name="end_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="group_by" class="form-label">تجميع حسب:</label>
+                        <label class="form-label" for="group_by">تفصيل حسب</label>
                         <select class="form-select" id="group_by" name="group_by">
-                            <option value="day">يومي</option>
-                            <option value="week">أسبوعي</option>
-                            <option value="month">شهري</option>
+                            <option value="day">يوم</option>
+                            <option value="week">أسبوع</option>
+                            <option value="month">شهر</option>
                         </select>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض التقرير</button>
+                        <button type="submit" class="btn btn-primary">عرض الأرباح</button>
                     </div>
                 </form>
-                #}
             </div>
         </div>
     </div>
-    
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title mb-0">تقرير العملاء</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">عرض تقرير بأفضل العملاء خلال فترة زمنية.</p>
-                {# النموذج التالي معطل مؤقتاً لأن endpoint customers_report غير موجود #}
-                {#
+                <p class="card-text">أفضل العملاء من حيث حجم المشتريات خلال الفترة.</p>
                 <form action="{{ url_for('customers_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label for="start_date_c" class="form-label">من تاريخ:</label>
+                        <label class="form-label" for="start_date_c">من تاريخ</label>
                         <input type="date" class="form-control" id="start_date_c" name="start_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="end_date_c" class="form-label">إلى تاريخ:</label>
+                        <label class="form-label" for="end_date_c">إلى تاريخ</label>
                         <input type="date" class="form-control" id="end_date_c" name="end_date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="limit_c" class="form-label">عدد العملاء:</label>
+                        <label class="form-label" for="limit_c">عدد العملاء</label>
                         <input type="number" class="form-control" id="limit_c" name="limit" min="1" max="50" value="10">
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض التقرير</button>
+                        <button type="submit" class="btn btn-primary">عرض العملاء</button>
                     </div>
                 </form>
-                #}
             </div>
         </div>
     </div>
 </div>
-{% else %}
-<div class="alert alert-danger mt-5 text-center">ليس لديك صلاحية الوصول لهذه الصفحة.</div>
 {% endif %}
 {% endblock %}

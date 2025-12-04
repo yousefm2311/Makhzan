@@ -1,0 +1,44 @@
+﻿{% extends "base.html" %}
+
+{% block title %}تقرير الأرباح{% endblock %}
+{% block header %}تقرير الأرباح{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="mb-3">
+      <strong>الفترة:</strong> من {{ start_date }} إلى {{ end_date }}
+    </div>
+    <div class="mb-3">
+      <strong>إجمالي المبيعات:</strong> {{ total_sales | round(2) }}
+    </div>
+    <div class="mb-3">
+      <strong>إجمالي الأرباح:</strong> {{ total_profit | round(2) }}
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>الفترة</th>
+            <th>المبيعات</th>
+            <th>الربح</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in summary %}
+          <tr>
+            <td>{{ row.period }}</td>
+            <td>{{ row.sales | round(2) }}</td>
+            <td>{{ row.profit | round(2) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-center">لا توجد بيانات</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
