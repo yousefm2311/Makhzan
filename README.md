@@ -76,3 +76,20 @@ Add dashboard, inventory list, item details, and workflow screenshots before pin
 Yousef Mohamed
 
 - GitHub: https://github.com/yousefm2311
+mac
+cd Makhzan
+python3 -m venv .venv
+source .venv/bin/activate
+pip install Flask Flask-SQLAlchemy Flask-Login Flask-Migrate Flask-WTF email-validator openpyxl
+cd Makhzan
+python app.py
+
+
+windows
+cd Makhzan
+python -m venv .venv
+.venv\Scripts\activate
+pip install Flask Flask-SQLAlchemy Flask-Login Flask-Migrate Flask-WTF email-validator openpyxl
+cd Makhzan
+python app.py
+
