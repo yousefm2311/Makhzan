@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}تفاصيل فاتورة الشراء - نظام إدارة المخزن{% endblock %}
+{% block title %}تفاصيل التوريد - نظام إدارة المخزن{% endblock %}
 
-{% block header %}تفاصيل فاتورة الشراء: {{ purchase.invoice_number }}{% endblock %}
+{% block header %}تفاصيل التوريد: {{ purchase.invoice_number }}{% endblock %}
 
 {% block header_buttons %}
 <a href="{{ url_for('purchases') }}" class="btn btn-sm btn-secondary">
-    <i class="fas fa-arrow-right"></i> العودة للمشتريات
+    <i class="fas fa-arrow-right"></i> العودة للتوريدات
 </a>
 {% endblock %}
 
@@ -26,7 +26,7 @@
                                 <td>{{ purchase.invoice_number }}</td>
                             </tr>
                             <tr>
-                                <th>تاريخ الشراء:</th>
+                                <th>تاريخ التوريد:</th>
                                 <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
                             </tr>
                             <tr>

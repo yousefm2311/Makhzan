@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}صرف عهدة{% endblock %}
+{% block header %}صرف عهدة من المخزن{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-5 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>تسجيل صرف</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.product_id.label(class="form-label") }}{{ form.product_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.employee_id.label(class="form-label") }}{{ form.employee_id(class="form-select") }}</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">{{ form.quantity.label(class="form-label") }}{{ form.quantity(class="form-control") }}</div>
+                        <div class="col-md-6 mb-3">{{ form.issue_date.label(class="form-label") }}{{ form.issue_date(class="form-control") }}</div>
+                    </div>
+                    <div class="mb-3">{{ form.purpose.label(class="form-label") }}{{ form.purpose(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <button class="btn btn-primary w-100" type="submit">تسجيل الصرف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><strong>آخر عمليات الصرف</strong></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الصنف</th>
+                                <th>كود الموظف</th>
+                                <th>الموظف</th>
+                                <th>الفرع</th>
+                                <th>الكمية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issue in recent_issues %}
+                            <tr>
+                                <td>{{ issue.issue_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ issue.product.name if issue.product else '-' }}</td>
+                                <td>{{ issue.employee.employee_code if issue.employee else '-' }}</td>
+                                <td>{{ issue.employee.name if issue.employee else '-' }}</td>
+                                <td>{{ issue.employee.branch.name if issue.employee and issue.employee.branch else '-' }}</td>
+                                <td>{{ issue.quantity }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">لا توجد عمليات صرف.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

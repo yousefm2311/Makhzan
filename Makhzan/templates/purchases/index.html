@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}المشتريات - نظام إدارة المخزن{% endblock %}
+{% block title %}التوريدات - نظام إدارة المخزن{% endblock %}
 
-{% block header %}المشتريات{% endblock %}
+{% block header %}التوريدات{% endblock %}
 
 {% block header_buttons %}
 <a href="{{ url_for('add_purchase') }}" class="btn btn-primary">
-    <i class="fas fa-plus"></i> إضافة فاتورة شراء جديدة
+    <i class="fas fa-plus"></i> إضافة توريد جديد
 </a>
 {% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">قائمة المشتريات</h5>
+        <h5 class="mb-0">قائمة التوريدات</h5>
         <a href="{{ url_for('add_purchase') }}" class="btn btn-success">
-            <i class="fas fa-plus"></i> إضافة فاتورة شراء
+            <i class="fas fa-plus"></i> إضافة توريد
         </a>
     </div>
     <div class="card-body">
@@ -51,12 +51,16 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center">لا توجد مشتريات</td>
+                        <td colspan="7" class="text-center">لا توجد توريدات</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% if purchases_page is defined %}
+        {% set page_obj = purchases_page %}
+        {% include "partials/pagination.html" %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}إضافة فاتورة شراء جديدة - نظام إدارة المخزن{% endblock %}
+{% block title %}إضافة توريد جديد - نظام إدارة المخزن{% endblock %}
 
-{% block header %}إضافة فاتورة شراء جديدة{% endblock %}
+{% block header %}إضافة توريد جديد{% endblock %}
 
 {% block header_buttons %}
 <a href="{{ url_for('purchases') }}" class="btn btn-sm btn-secondary">
-    <i class="fas fa-arrow-right"></i> العودة للمشتريات
+    <i class="fas fa-arrow-right"></i> العودة للتوريدات
 </a>
 {% endblock %}
 
@@ -160,7 +160,7 @@
                         </div>
                         <div class="d-grid gap-2">
                             <button type="button" id="complete-purchase" class="btn btn-success">
-                                <i class="fas fa-check"></i> إتمام عملية الشراء
+                                <i class="fas fa-check"></i> إتمام التوريد
                             </button>
                         </div>
                     </div>

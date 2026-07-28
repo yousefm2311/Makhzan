@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}مرتجع عهدة{% endblock %}
+{% block header %}مرتجع عهدة{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>تسجيل مرتجع</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.product_id.label(class="form-label") }}{{ form.product_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.employee_id.label(class="form-label") }}{{ form.employee_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.quantity.label(class="form-label") }}{{ form.quantity(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.return_date.label(class="form-label") }}{{ form.return_date(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.condition.label(class="form-label") }}{{ form.condition(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <button class="btn btn-primary w-100" type="submit">تسجيل المرتجع</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><strong>سجل المرتجعات</strong></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm align-middle">
+                        <thead><tr><th>رقم</th><th>التاريخ</th><th>الصنف</th><th>الموظف</th><th>الفرع</th><th>الكمية</th><th>الحالة</th></tr></thead>
+                        <tbody>
+                            {% for item in returns_page.items %}
+                            <tr>
+                                <td>{{ item.return_number }}</td>
+                                <td>{{ item.return_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ item.product.name if item.product else '-' }}</td>
+                                <td>{{ item.employee.employee_code if item.employee else '-' }} - {{ item.employee.name if item.employee else '-' }}</td>
+                                <td>{{ item.employee.branch.name if item.employee and item.employee.branch else '-' }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.condition }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center text-muted">لا توجد مرتجعات.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% set page_obj = returns_page %}
+                {% include "partials/pagination.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

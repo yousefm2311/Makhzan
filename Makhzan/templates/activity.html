@@ -39,6 +39,10 @@
         </tbody>
       </table>
     </div>
+    {% if logs_page is defined %}
+    {% set page_obj = logs_page %}
+    {% include "partials/pagination.html" %}
+    {% endif %}
   </div>
 </div>
 {% endblock %}

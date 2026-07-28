@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}استلام فاتورة شراء - نظام إدارة المخزن{% endblock %}
+{% block title %}استلام توريد - نظام إدارة المخزن{% endblock %}
 
-{% block header %}استلام فاتورة شراء رقم: {{ purchase.invoice_number }}{% endblock %}
+{% block header %}استلام توريد رقم: {{ purchase.invoice_number }}{% endblock %}
 
 {% block header_buttons %}
 <a href="{{ url_for('view_purchase', id=purchase.id) }}" class="btn btn-sm btn-secondary">
@@ -21,7 +21,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>رقم الفاتورة:</strong> {{ purchase.invoice_number }}</p>
-                        <p><strong>تاريخ الشراء:</strong> {{ purchase.purchase_date.strftime('%Y-%m-%d') }}</p>
+                        <p><strong>تاريخ التوريد:</strong> {{ purchase.purchase_date.strftime('%Y-%m-%d') }}</p>
                         <p><strong>المورد:</strong> {{ purchase.supplier.name if purchase.supplier else 'غير محدد' }}</p>
                     </div>
                     <div class="col-md-6">

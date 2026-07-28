@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات الصرف{% endblock %}
+{% block header %}طلبات الصرف{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>طلب صرف جديد</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.product_id.label(class="form-label") }}{{ form.product_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.employee_id.label(class="form-label") }}{{ form.employee_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.quantity.label(class="form-label") }}{{ form.quantity(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.purpose.label(class="form-label") }}{{ form.purpose(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <button class="btn btn-primary w-100" type="submit">إرسال الطلب</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>طلبات الصرف</strong>
+                <div class="btn-group btn-group-sm">
+                    {% for key, label in [('all','الكل'),('pending','انتظار'),('approved','معتمد'),('executed','منفذ'),('rejected','مرفوض')] %}
+                    <a class="btn btn-outline-secondary {% if status == key %}active{% endif %}" href="{{ url_for('issue_requests', status=key) }}">{{ label }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm align-middle">
+                        <thead><tr><th>رقم الطلب</th><th>الصنف</th><th>الموظف</th><th>الفرع</th><th>الكمية</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                        <tbody>
+                            {% for req in requests_page.items %}
+                            <tr>
+                                <td>{{ req.request_number }}</td>
+                                <td>{{ req.product.name if req.product else '-' }}</td>
+                                <td>{{ req.employee.employee_code if req.employee else '-' }} - {{ req.employee.name if req.employee else '-' }}</td>
+                                <td>{{ req.employee.branch.name if req.employee and req.employee.branch else '-' }}</td>
+                                <td>{{ req.quantity }}</td>
+                                <td>
+                                    {% if req.status == 'pending' %}<span class="badge bg-warning text-dark">انتظار</span>
+                                    {% elif req.status == 'approved' %}<span class="badge bg-info">معتمد</span>
+                                    {% elif req.status == 'executed' %}<span class="badge bg-success">منفذ</span>
+                                    {% else %}<span class="badge bg-danger">مرفوض</span>{% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if can_approve and req.status == 'pending' %}
+                                        <form method="POST" action="{{ url_for('approve_issue_request', id=req.id) }}"><button class="btn btn-outline-success">اعتماد</button></form>
+                                        {% endif %}
+                                        {% if can_execute and req.status == 'approved' %}
+                                        <form method="POST" action="{{ url_for('execute_issue_request', id=req.id) }}"><button class="btn btn-outline-primary">تنفيذ</button></form>
+                                        {% endif %}
+                                        {% if can_approve and req.status in ['pending','approved'] %}
+                                        <form method="POST" action="{{ url_for('reject_issue_request', id=req.id) }}"><button class="btn btn-outline-danger">رفض</button></form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center text-muted">لا توجد طلبات.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% set page_obj = requests_page %}
+                {% include "partials/pagination.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

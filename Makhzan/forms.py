@@ -94,12 +94,96 @@ class UserForm(FlaskForm):
     email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])
     role = SelectField('الصلاحية', choices=[
         ('admin', 'ادمن'),
-        ('user', 'مستخدم'),
-        ('cashier', 'بائع')
+        ('warehouse_manager', 'مدير مخزن'),
+        ('approver', 'مدير اعتماد'),
+        ('auditor', 'مراجع'),
+        ('requester', 'طالب عهدة'),
+        ('user', 'مستخدم')
     ], validators=[DataRequired()])
     is_active = BooleanField('نشط')
     password = PasswordField('كلمة المرور', validators=[Optional(), Length(min=4), Regexp(r'^[a-zA-Z0-9]+$', message='كلمة المرور يجب أن تتكون من حروف أو أرقام فقط')])
     confirm_password = PasswordField('تأكيد كلمة المرور', validators=[Optional(), EqualTo('password')])
+
+
+class BranchForm(FlaskForm):
+    name = StringField('اسم الفرع', validators=[DataRequired(), Length(max=120)])
+    code = StringField('كود الفرع', validators=[DataRequired(), Length(max=50)])
+    location = StringField('مكان الفرع', validators=[Optional(), Length(max=200)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+    is_active = BooleanField('نشط', default=True)
+
+
+class StorageLocationForm(FlaskForm):
+    branch_id = SelectField('الفرع', coerce=int, validators=[Optional()])
+    name = StringField('اسم موقع التخزين', validators=[DataRequired(), Length(max=120)])
+    code = StringField('كود الموقع', validators=[DataRequired(), Length(max=50)])
+    location_type = StringField('نوع الموقع', validators=[Optional(), Length(max=50)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+    is_active = BooleanField('نشط', default=True)
+
+
+class EmployeeForm(FlaskForm):
+    employee_code = StringField('كود الموظف', validators=[DataRequired(), Length(max=50)])
+    name = StringField('اسم الموظف', validators=[DataRequired(), Length(max=120)])
+    branch_id = SelectField('الفرع', coerce=int, validators=[Optional()])
+    department = StringField('الإدارة / القسم', validators=[Optional(), Length(max=120)])
+    job_title = StringField('المسمى الوظيفي', validators=[Optional(), Length(max=120)])
+    phone = StringField('رقم الهاتف', validators=[Optional(), Length(max=30)])
+    email = StringField('البريد الإلكتروني', validators=[Optional(), Email()])
+    is_active = BooleanField('نشط', default=True)
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
+
+class StockIssueForm(FlaskForm):
+    product_id = SelectField('الصنف', coerce=int, validators=[DataRequired()])
+    employee_id = SelectField('الموظف المستلم', coerce=int, validators=[DataRequired()])
+    quantity = IntegerField('الكمية المنصرفة', validators=[DataRequired(), NumberRange(min=1)])
+    issue_date = DateField('تاريخ الصرف', validators=[DataRequired()], default=datetime.now().date)
+    purpose = StringField('الغرض / جهة الاستخدام', validators=[Optional(), Length(max=200)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
+
+class DamageRecordForm(FlaskForm):
+    product_id = SelectField('الصنف', coerce=int, validators=[DataRequired()])
+    quantity = IntegerField('كمية الهالك', validators=[DataRequired(), NumberRange(min=1)])
+    damage_date = DateField('تاريخ الهالك', validators=[DataRequired()], default=datetime.now().date)
+    reason = StringField('سبب الهالك', validators=[Optional(), Length(max=200)])
+    responsibility = StringField('المسؤولية / المكان', validators=[Optional(), Length(max=120)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
+
+class StockIssueRequestForm(FlaskForm):
+    product_id = SelectField('الصنف', coerce=int, validators=[DataRequired()])
+    employee_id = SelectField('الموظف المستلم', coerce=int, validators=[DataRequired()])
+    quantity = IntegerField('الكمية المطلوبة', validators=[DataRequired(), NumberRange(min=1)])
+    purpose = StringField('الغرض / جهة الاستخدام', validators=[Optional(), Length(max=200)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
+
+class EmployeeReturnForm(FlaskForm):
+    product_id = SelectField('الصنف', coerce=int, validators=[DataRequired()])
+    employee_id = SelectField('الموظف', coerce=int, validators=[DataRequired()])
+    quantity = IntegerField('الكمية المرتجعة', validators=[DataRequired(), NumberRange(min=1)])
+    return_date = DateField('تاريخ المرتجع', validators=[DataRequired()], default=datetime.now().date)
+    condition = SelectField('الحالة', choices=[
+        ('usable', 'صالح للاستخدام'),
+        ('damaged', 'تالف'),
+        ('needs_review', 'يحتاج مراجعة')
+    ], validators=[DataRequired()])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
+
+class StocktakeForm(FlaskForm):
+    branch_id = SelectField('الفرع', coerce=int, validators=[Optional()])
+    count_date = DateField('تاريخ الجرد', validators=[DataRequired()], default=datetime.now().date)
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
+
+class StocktakeItemForm(FlaskForm):
+    product_id = SelectField('الصنف', coerce=int, validators=[DataRequired()])
+    counted_quantity = IntegerField('الكمية الفعلية', validators=[DataRequired(), NumberRange(min=0)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
+
 
 class SettingsForm(FlaskForm):
     company_name = StringField('اسم الشركة', validators=[DataRequired()])

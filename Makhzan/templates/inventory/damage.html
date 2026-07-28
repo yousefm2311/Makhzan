@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل الهالك{% endblock %}
+{% block header %}تسجيل الهالك{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-5 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>تسجيل هالك / تالف</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.product_id.label(class="form-label") }}{{ form.product_id(class="form-select") }}</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">{{ form.quantity.label(class="form-label") }}{{ form.quantity(class="form-control") }}</div>
+                        <div class="col-md-6 mb-3">{{ form.damage_date.label(class="form-label") }}{{ form.damage_date(class="form-control") }}</div>
+                    </div>
+                    <div class="mb-3">{{ form.reason.label(class="form-label") }}{{ form.reason(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.responsibility.label(class="form-label") }}{{ form.responsibility(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <button class="btn btn-danger w-100" type="submit">تسجيل الهالك</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><strong>آخر الهالك</strong></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped small">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الصنف</th>
+                                <th>الكمية</th>
+                                <th>السبب</th>
+                                <th>المسؤولية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for damage in recent_damage %}
+                            <tr>
+                                <td>{{ damage.damage_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ damage.product.name }}</td>
+                                <td>{{ damage.quantity }}</td>
+                                <td>{{ damage.reason or '-' }}</td>
+                                <td>{{ damage.responsibility or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted">لا توجد سجلات هالك.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

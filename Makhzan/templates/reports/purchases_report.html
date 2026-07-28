@@ -1,8 +1,8 @@
 {% extends "base_report.html" %}
 
-{% block title %}تقرير المشتريات - نظام إدارة المخزن{% endblock %}
+{% block title %}تقرير التوريدات - نظام إدارة المخزن{% endblock %}
 
-{% block report_title %}تقرير المشتريات{% endblock %}
+{% block report_title %}تقرير التوريدات{% endblock %}
 
 {% block report_subtitle %}
 من {{ start_date.strftime('%Y-%m-%d') }} إلى {{ end_date.strftime('%Y-%m-%d') }}
@@ -13,7 +13,7 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-body text-center">
-                <h5 class="card-title">إجمالي المشتريات</h5>
+                <h5 class="card-title">إجمالي التوريدات</h5>
                 <h2 class="card-text">{{ "%.2f"|format(total_purchases) }}</h2>
             </div>
         </div>
@@ -39,7 +39,7 @@
 {% if report_type == 'summary' %}
 <div class="card mb-4">
     <div class="card-header">
-        <h5 class="card-title mb-0">ملخص المشتريات</h5>
+        <h5 class="card-title mb-0">ملخص التوريدات</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -48,7 +48,7 @@
                     <tr>
                         <th>التاريخ</th>
                         <th>عدد الفواتير</th>
-                        <th>إجمالي المشتريات</th>
+                        <th>إجمالي التوريدات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,7 +76,7 @@
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">المشتريات حسب طريقة الدفع</h5>
+                <h5 class="card-title mb-0">التوريدات حسب طريقة الدفع</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -85,7 +85,7 @@
                             <tr>
                                 <th>طريقة الدفع</th>
                                 <th>عدد الفواتير</th>
-                                <th>إجمالي المشتريات</th>
+                                <th>إجمالي التوريدات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -116,7 +116,7 @@
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">المشتريات حسب الموردين</h5>
+                <h5 class="card-title mb-0">التوريدات حسب الموردين</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -125,7 +125,7 @@
                             <tr>
                                 <th>المورد</th>
                                 <th>عدد الفواتير</th>
-                                <th>إجمالي المشتريات</th>
+                                <th>إجمالي التوريدات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -147,7 +147,7 @@
 {% else %}
 <div class="card">
     <div class="card-header">
-        <h5 class="card-title mb-0">تفاصيل المشتريات</h5>
+        <h5 class="card-title mb-0">تفاصيل التوريدات</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -218,7 +218,7 @@
         <div class="card">
             <div class="card-header bg-success text-white">
                 <div class="d-flex justify-content-between">
-                    <span>المشتريات المكتملة</span>
+                    <span>التوريدات المكتملة</span>
                     <span>عدد: {{ completed_purchases|length }} — الإجمالي: {{ "%.2f"|format(completed_total) }}</span>
                 </div>
             </div>
@@ -249,7 +249,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="text-muted mb-0">لا توجد مشتريات مكتملة ضمن الفترة.</p>
+                <p class="text-muted mb-0">لا توجد توريدات مكتملة ضمن الفترة.</p>
                 {% endif %}
             </div>
         </div>
@@ -259,7 +259,7 @@
         <div class="card">
             <div class="card-header bg-danger text-white">
                 <div class="d-flex justify-content-between">
-                    <span>المشتريات الملغاة</span>
+                    <span>التوريدات الملغاة</span>
                     <span>عدد: {{ cancelled_purchases|length }} — الإجمالي: {{ "%.2f"|format(cancelled_total) }}</span>
                 </div>
             </div>
@@ -288,7 +288,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="text-muted mb-0">لا توجد مشتريات ملغاة ضمن الفترة.</p>
+                <p class="text-muted mb-0">لا توجد توريدات ملغاة ضمن الفترة.</p>
                 {% endif %}
             </div>
         </div>
@@ -298,7 +298,7 @@
         <div class="card">
             <div class="card-header bg-warning text-dark">
                 <div class="d-flex justify-content-between">
-                    <span>المشتريات الماجلة</span>
+                    <span>التوريدات الآجلة</span>
                     <span>عدد: {{ majel_purchases|length }} — الإجمالي: {{ "%.2f"|format(majel_total) }} — الباقي: {{ "%.2f"|format(majel_due_total) }}</span>
                 </div>
             </div>
@@ -337,7 +337,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="text-muted mb-0">لا توجد مشتريات ماجلة ضمن الفترة.</p>
+                <p class="text-muted mb-0">لا توجد توريدات آجلة ضمن الفترة.</p>
                 {% endif %}
             </div>
         </div>

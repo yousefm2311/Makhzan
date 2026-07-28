@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}مواقع التخزين{% endblock %}
+{% block header %}مواقع التخزين{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>إضافة موقع تخزين</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_storage_location') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.branch_id.label(class="form-label") }}{{ form.branch_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.code.label(class="form-label") }}{{ form.code(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.location_type.label(class="form-label") }}{{ form.location_type(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <div class="form-check mb-3">{{ form.is_active(class="form-check-input") }} {{ form.is_active.label(class="form-check-label") }}</div>
+                    <button class="btn btn-primary w-100" type="submit">حفظ الموقع</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><strong>قائمة مواقع التخزين</strong></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead><tr><th>الكود</th><th>الاسم</th><th>الفرع</th><th>النوع</th><th>الحالة</th></tr></thead>
+                        <tbody>
+                            {% for location in locations %}
+                            <tr>
+                                <td><span class="badge bg-dark">{{ location.code }}</span></td>
+                                <td>{{ location.name }}</td>
+                                <td>{{ location.branch.name if location.branch else '-' }}</td>
+                                <td>{{ location.location_type or '-' }}</td>
+                                <td>{% if location.is_active %}<span class="badge bg-success">نشط</span>{% else %}<span class="badge bg-secondary">غير نشط</span>{% endif %}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted">لا توجد مواقع تخزين.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

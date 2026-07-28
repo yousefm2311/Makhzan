@@ -13,7 +13,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     full_name = db.Column(db.String(100), nullable=True)
-    role = db.Column(db.String(20), default='user')  # admin, user
+    role = db.Column(db.String(30), default='user')
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -83,6 +83,24 @@ class Supplier(db.Model):
     
     def __repr__(self):
         return f'<Supplier {self.name}>'
+
+
+class Branch(db.Model):
+    __tablename__ = 'branches'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    location = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    employees = db.relationship('Employee', backref='branch', lazy=True)
+    storage_locations = db.relationship('StorageLocation', backref='branch', lazy=True)
+
+    def __repr__(self):
+        return f'<Branch {self.code}>'
 
 
 class Customer(db.Model):
@@ -227,6 +245,22 @@ class Inventory(db.Model):
         return f'<Inventory {self.id}>'
 
 
+class StorageLocation(db.Model):
+    __tablename__ = 'storage_locations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    name = db.Column(db.String(120), nullable=False)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    location_type = db.Column(db.String(50), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<StorageLocation {self.code}>'
+
+
 class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transactions'
     
@@ -248,6 +282,181 @@ class InventoryTransaction(db.Model):
     
     def __repr__(self):
         return f'<InventoryTransaction {self.id}>'
+
+
+class Employee(db.Model):
+    __tablename__ = 'employees'
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_code = db.Column(db.String(50), unique=True, nullable=True, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    department = db.Column(db.String(120), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    job_title = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(30), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    issues = db.relationship('StockIssue', backref='employee', lazy=True)
+
+    def __repr__(self):
+        return f'<Employee {self.name}>'
+
+
+class StockIssue(db.Model):
+    __tablename__ = 'stock_issues'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    issue_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    purpose = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship('Product', backref='stock_issues', lazy=True)
+    user = db.relationship('User', backref='stock_issues', lazy=True)
+
+    def __repr__(self):
+        return f'<StockIssue {self.id}>'
+
+
+class DamageRecord(db.Model):
+    __tablename__ = 'damage_records'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    damage_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    reason = db.Column(db.String(200), nullable=True)
+    responsibility = db.Column(db.String(120), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship('Product', backref='damage_records', lazy=True)
+    user = db.relationship('User', backref='damage_records', lazy=True)
+
+    def __repr__(self):
+        return f'<DamageRecord {self.id}>'
+
+
+class StockIssueRequest(db.Model):
+    __tablename__ = 'stock_issue_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    purpose = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default='pending', index=True)
+    requested_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    executed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    rejected_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    executed_at = db.Column(db.DateTime, nullable=True)
+    rejected_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    stock_issue_id = db.Column(db.Integer, db.ForeignKey('stock_issues.id'), nullable=True)
+
+    product = db.relationship('Product', backref='issue_requests', lazy=True)
+    employee = db.relationship('Employee', backref='issue_requests', lazy=True)
+    requested_by = db.relationship('User', foreign_keys=[requested_by_id], lazy=True)
+    approved_by = db.relationship('User', foreign_keys=[approved_by_id], lazy=True)
+    executed_by = db.relationship('User', foreign_keys=[executed_by_id], lazy=True)
+    rejected_by = db.relationship('User', foreign_keys=[rejected_by_id], lazy=True)
+    stock_issue = db.relationship('StockIssue', lazy=True)
+
+    def __repr__(self):
+        return f'<StockIssueRequest {self.request_number}>'
+
+
+class EmployeeReturn(db.Model):
+    __tablename__ = 'employee_returns'
+
+    id = db.Column(db.Integer, primary_key=True)
+    return_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    return_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    condition = db.Column(db.String(50), default='usable')
+    notes = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship('Product', backref='employee_returns', lazy=True)
+    employee = db.relationship('Employee', backref='returns', lazy=True)
+    user = db.relationship('User', backref='employee_returns', lazy=True)
+
+    def __repr__(self):
+        return f'<EmployeeReturn {self.return_number}>'
+
+
+class Stocktake(db.Model):
+    __tablename__ = 'stocktakes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    count_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    count_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='draft', index=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime, nullable=True)
+
+    branch = db.relationship('Branch', backref='stocktakes', lazy=True)
+    created_by = db.relationship('User', foreign_keys=[created_by_id], lazy=True)
+    approved_by = db.relationship('User', foreign_keys=[approved_by_id], lazy=True)
+    items = db.relationship('StocktakeItem', backref='stocktake', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Stocktake {self.count_number}>'
+
+
+class StocktakeItem(db.Model):
+    __tablename__ = 'stocktake_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    stocktake_id = db.Column(db.Integer, db.ForeignKey('stocktakes.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    system_quantity = db.Column(db.Integer, nullable=False, default=0)
+    counted_quantity = db.Column(db.Integer, nullable=False, default=0)
+    variance = db.Column(db.Integer, nullable=False, default=0)
+    notes = db.Column(db.Text, nullable=True)
+
+    product = db.relationship('Product', lazy=True)
+
+    def __repr__(self):
+        return f'<StocktakeItem {self.id}>'
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    action = db.Column(db.String(80), nullable=False, index=True)
+    entity_type = db.Column(db.String(80), nullable=True, index=True)
+    entity_id = db.Column(db.Integer, nullable=True)
+    details = db.Column(db.Text, nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship('User', backref='audit_logs', lazy=True)
+
+    def __repr__(self):
+        return f'<AuditLog {self.action}>'
 
 
 class ReferenceProduct(db.Model):

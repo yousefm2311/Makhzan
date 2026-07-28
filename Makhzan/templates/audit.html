@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}سجل التدقيق{% endblock %}
+{% block header %}سجل التدقيق{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted">يسجل عمليات الإنشاء والاعتماد والرفض والتنفيذ وتسويات الجرد والمرتجعات.</p>
+        <div class="table-responsive">
+            <table class="table table-striped table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>التاريخ</th>
+                        <th>المستخدم</th>
+                        <th>الإجراء</th>
+                        <th>الكيان</th>
+                        <th>رقم الكيان</th>
+                        <th>التفاصيل</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_page.items %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ log.user.username if log.user else 'نظام' }}</td>
+                        <td>{{ log.action }}</td>
+                        <td>{{ log.entity_type or '-' }}</td>
+                        <td>{{ log.entity_id or '-' }}</td>
+                        <td>{{ log.details or '-' }}</td>
+                        <td>{{ log.ip_address or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center text-muted">لا توجد سجلات تدقيق.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% set page_obj = audit_page %}
+        {% include "partials/pagination.html" %}
+    </div>
+</div>
+{% endblock %}

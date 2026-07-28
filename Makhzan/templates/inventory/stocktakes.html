@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}الجرد{% endblock %}
+{% block header %}الجرد الفعلي{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>إنشاء جرد</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.branch_id.label(class="form-label") }}{{ form.branch_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.count_date.label(class="form-label") }}{{ form.count_date(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <button class="btn btn-primary w-100" type="submit">إنشاء الجرد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><strong>سجلات الجرد</strong></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm align-middle">
+                        <thead><tr><th>رقم الجرد</th><th>التاريخ</th><th>الفرع</th><th>الحالة</th><th>المنشئ</th><th>عرض</th></tr></thead>
+                        <tbody>
+                            {% for item in stocktakes_page.items %}
+                            <tr>
+                                <td>{{ item.count_number }}</td>
+                                <td>{{ item.count_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ item.branch.name if item.branch else '-' }}</td>
+                                <td>{% if item.status == 'approved' %}<span class="badge bg-success">معتمد</span>{% else %}<span class="badge bg-warning text-dark">مسودة</span>{% endif %}</td>
+                                <td>{{ item.created_by.username if item.created_by else '-' }}</td>
+                                <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('view_stocktake', id=item.id) }}">فتح</a></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">لا توجد سجلات جرد.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% set page_obj = stocktakes_page %}
+                {% include "partials/pagination.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base_report.html" %}
+
+{% block title %}تقرير الهالك{% endblock %}
+{% block report_title %}تقرير الهالك{% endblock %}
+{% block report_subtitle %}الفترة من {{ start_date }} إلى {{ end_date }}{% endblock %}
+
+{% block report_content %}
+<div class="row mb-4">
+    <div class="col-md-4"><div class="card metric-card"><div class="card-body"><div class="label">عدد السجلات</div><div class="value">{{ records|length }}</div></div></div></div>
+    <div class="col-md-4"><div class="card metric-card"><div class="card-body"><div class="label">إجمالي الكميات</div><div class="value">{{ total_quantity }}</div></div></div></div>
+    <div class="col-md-4"><div class="card metric-card"><div class="card-body"><div class="label">قيمة الهالك</div><div class="value">{{ "%.2f"|format(total_value) }}</div></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h6>ملخص حسب الصنف</h6>
+        <table class="table table-bordered table-sm">
+            <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+            <tbody>
+                {% for name, quantity in by_product[:10] %}
+                <tr><td>{{ name }}</td><td>{{ quantity }}</td></tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h6>ملخص حسب السبب</h6>
+        <table class="table table-bordered table-sm">
+            <thead><tr><th>السبب</th><th>الكمية</th></tr></thead>
+            <tbody>
+                {% for name, quantity in by_reason[:10] %}
+                <tr><td>{{ name }}</td><td>{{ quantity }}</td></tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h6>تفاصيل الهالك</h6>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-sm align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>التاريخ</th>
+                <th>الصنف</th>
+                <th>التصنيف</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة</th>
+                <th>القيمة</th>
+                <th>السبب</th>
+                <th>المسؤولية / المكان</th>
+                <th>المسجل</th>
+                <th>ملاحظات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ record.damage_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ record.product.name if record.product else '-' }}</td>
+                <td>{{ record.product.category.name if record.product and record.product.category else '-' }}</td>
+                <td>{{ record.quantity }}</td>
+                <td>{{ "%.2f"|format(record.product.purchase_price or 0) if record.product else "0.00" }}</td>
+                <td>{{ "%.2f"|format(record.quantity * (record.product.purchase_price or 0)) if record.product else "0.00" }}</td>
+                <td>{{ record.reason or '-' }}</td>
+                <td>{{ record.responsibility or '-' }}</td>
+                <td>{{ record.user.username if record.user else '-' }}</td>
+                <td>{{ record.notes or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="11" class="text-center text-muted">لا توجد سجلات هالك في هذه الفترة.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

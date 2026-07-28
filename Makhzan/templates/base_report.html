@@ -3,127 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}تقرير - نظام إدارة المخزن{% endblock %}</title>
-    
-    <!-- Bootstrap RTL CSS -->
+    <title>{% block title %}تقرير - نظام مخازن الشركة{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
         @media print {
-            .no-print {
-                display: none !important;
-            }
-            .page-break {
-                page-break-after: always;
-            }
-            body {
-                padding: 0;
-                margin: 0;
-            }
-            .container {
-                width: 100%;
-                max-width: 100%;
-                padding: 0;
-                margin: 0;
-            }
-            .card {
-                border: none;
-            }
+            .no-print { display: none !important; }
+            body { padding: 0; margin: 0; background: #fff; }
+            .container { width: 100%; max-width: 100%; padding: 0; margin: 0; }
+            .card { box-shadow: none !important; }
         }
-        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
+            color: #1f2937;
         }
-        
-        .report-header {
-            text-align: center;
-            margin-bottom: 30px;
+        .report-shell {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            padding: 24px;
         }
-        
+        .company-name {
+            font-size: 20px;
+            font-weight: 700;
+        }
         .report-title {
             font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-weight: 700;
         }
-        
-        .report-subtitle {
-            font-size: 16px;
-            color: #6c757d;
-            margin-bottom: 5px;
-        }
-        
-        .report-date {
-            font-size: 14px;
+        .report-subtitle, .report-date, .company-address {
             color: #6c757d;
         }
-        
-        .company-info {
+        .metric-card {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: none;
+        }
+        .metric-card .label {
+            color: #6c757d;
+            font-size: 13px;
+        }
+        .metric-card .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .table th {
+            background: #f1f3f5;
+            white-space: nowrap;
+        }
+        .signature-line {
+            border-top: 1px solid #adb5bd;
+            padding-top: 8px;
+            min-width: 180px;
             text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .company-logo {
-            max-width: 150px;
-            margin-bottom: 10px;
-        }
-        
-        .company-name {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .company-address {
-            font-size: 14px;
-            color: #6c757d;
-        }
-        
-        .print-buttons {
-            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container py-4">
         <div class="print-buttons no-print text-end mb-3">
-            <button class="btn btn-primary" onclick="window.print()">
-                <i class="fas fa-print"></i> طباعة
-            </button>
-            <button class="btn btn-secondary" onclick="window.close()">
-                <i class="fas fa-times"></i> إغلاق
-            </button>
+            <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+            <button class="btn btn-secondary" onclick="window.close()"><i class="fas fa-times"></i> إغلاق</button>
         </div>
-        
-        <div class="company-info">
-            {% if company_logo %}
-            <img src="{{ company_logo }}" alt="شعار الشركة" class="company-logo">
-            {% endif %}
-            <div class="company-name">{{ company_name|default('نظام إدارة المخزن') }}</div>
-            <div class="company-address">{{ company_address|default('') }}</div>
-        </div>
-        
-        <div class="report-header">
-            <div class="report-title">{% block report_title %}تقرير{% endblock %}</div>
-            <div class="report-subtitle">{% block report_subtitle %}{% endblock %}</div>
-            <div class="report-date">تاريخ التقرير: {{ now.strftime('%Y-%m-%d %H:%M') }}</div>
-        </div>
-        
-        <div class="report-content">
+
+        <div class="report-shell">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="company-name">{{ company_name|default('نظام مخازن الشركة') }}</div>
+                    <div class="company-address">{{ company_address|default('') }}</div>
+                </div>
+                <div class="text-end">
+                    <div class="report-title">{% block report_title %}تقرير{% endblock %}</div>
+                    <div class="report-subtitle">{% block report_subtitle %}{% endblock %}</div>
+                    <div class="report-date">تاريخ التقرير: {{ now.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
+
             {% block report_content %}{% endblock %}
-        </div>
-        
-        <div class="text-center mt-4">
-            <p class="small text-muted">© {{ now.year }} نظام إدارة المخزن - جميع الحقوق محفوظة</p>
+
+            <div class="d-flex justify-content-between mt-5">
+                <div class="signature-line">مسؤول المخزن</div>
+                <div class="signature-line">المراجع</div>
+                <div class="signature-line">الاعتماد</div>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="small text-muted mb-0">© {{ now.year }} نظام مخازن الشركة</p>
+            </div>
         </div>
     </div>
-    
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     {% block scripts %}{% endblock %}
 </body>
 </html>

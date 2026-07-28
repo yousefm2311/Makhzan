@@ -1,7 +1,7 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %}التقارير{% endblock %}
-{% block header %}التقارير{% endblock %}
+{% block title %}تقارير المخزن{% endblock %}
+{% block header %}تقارير المخزن{% endblock %}
 
 {% block content %}
 {% if current_user.role == 'admin' %}
@@ -9,41 +9,10 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
-                <h5 class="card-title mb-0">تقرير المبيعات</h5>
+                <h5 class="card-title mb-0">تقرير التوريدات</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">تحليل المبيعات خلال فترة زمنية مع خيارات ملخصة أو مفصلة.</p>
-                <form action="{{ url_for('sales_report') }}" method="GET" target="_blank">
-                    <div class="mb-3">
-                        <label class="form-label" for="start_date">من تاريخ</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="end_date">إلى تاريخ</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="report_type">نوع التقرير</label>
-                        <select class="form-select" id="report_type" name="report_type">
-                            <option value="summary">ملخص</option>
-                            <option value="detailed">تفصيلي</option>
-                        </select>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض تقرير المبيعات</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">تقرير المشتريات</h5>
-            </div>
-            <div class="card-body">
-                <p class="card-text">مراجعة مشترياتك خلال فترة معينة لترتيب الموردين والمدفوعات.</p>
+                <p class="card-text">مراجعة ما دخل المخزن من الموردين خلال فترة محددة.</p>
                 <form action="{{ url_for('purchases_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
                         <label class="form-label" for="start_date_p">من تاريخ</label>
@@ -61,7 +30,7 @@
                         </select>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض تقرير المشتريات</button>
+                        <button type="submit" class="btn btn-primary">عرض تقرير التوريدات</button>
                     </div>
                 </form>
             </div>
@@ -74,14 +43,14 @@
                 <h5 class="card-title mb-0">تقرير المخزون</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">احصل على حالة المخزون بحسب الفئة أو حالة التوفر.</p>
+                <p class="card-text">حالة الموجود والناقص والمنفد حسب التصنيف.</p>
                 <form action="{{ url_for('inventory_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
                         <label class="form-label" for="inventory_status">حالة المخزون</label>
                         <select class="form-select" id="inventory_status" name="status">
-                            <option value="all">كل المنتجات</option>
+                            <option value="all">كل الأصناف</option>
                             <option value="low">قريبة من النفاد</option>
-                            <option value="out">منفذة</option>
+                            <option value="out">منفدة</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -97,6 +66,45 @@
                         <button type="submit" class="btn btn-primary">عرض تقرير المخزون</button>
                     </div>
                 </form>
+                <a class="btn btn-outline-success w-100 mt-2" href="{{ url_for('export_inventory_excel') }}">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">تقرير الصرف الداخلي</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">ما تم صرفه من المخزن، ولمن تم الصرف، والغرض من الصرف.</p>
+                <form action="{{ url_for('issues_report') }}" method="GET" target="_blank">
+                    <div class="mb-3">
+                        <label class="form-label" for="start_date_issue">من تاريخ</label>
+                        <input type="date" class="form-control" id="start_date_issue" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="end_date_issue">إلى تاريخ</label>
+                        <input type="date" class="form-control" id="end_date_issue" name="end_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="branch_id_issue">الفرع</label>
+                        <select class="form-select" id="branch_id_issue" name="branch_id">
+                            <option value="">كل الفروع</option>
+                            {% for branch in branches %}
+                            <option value="{{ branch.id }}">{{ branch.name }} ({{ branch.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">عرض تقرير الصرف</button>
+                    </div>
+                </form>
+                <a class="btn btn-outline-success w-100 mt-2" href="{{ url_for('export_issues_excel') }}">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </a>
             </div>
         </div>
     </div>
@@ -106,88 +114,31 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
-                <h5 class="card-title mb-0">المنتجات الأكثر مبيعاً</h5>
+                <h5 class="card-title mb-0">تقرير الهالك</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">تعرف على المنتجات التي حققت أعلى مبيعات خلال الفترة المحددة.</p>
-                <form action="{{ url_for('top_selling_report') }}" method="GET" target="_blank">
+                <p class="card-text">تفاصيل الأصناف التالفة أو المفقودة وقيمتها خلال فترة محددة.</p>
+                <form action="{{ url_for('damage_report') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label class="form-label" for="start_date_ts">من تاريخ</label>
-                        <input type="date" class="form-control" id="start_date_ts" name="start_date" required>
+                        <label class="form-label" for="start_date_damage">من تاريخ</label>
+                        <input type="date" class="form-control" id="start_date_damage" name="start_date" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="end_date_ts">إلى تاريخ</label>
-                        <input type="date" class="form-control" id="end_date_ts" name="end_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="limit">عدد العناصر</label>
-                        <input type="number" class="form-control" id="limit" name="limit" min="1" max="50" value="10">
+                        <label class="form-label" for="end_date_damage">إلى تاريخ</label>
+                        <input type="date" class="form-control" id="end_date_damage" name="end_date" required>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض المنتجات</button>
+                        <button type="submit" class="btn btn-primary">عرض تقرير الهالك</button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">تقرير الأرباح</h5>
-            </div>
-            <div class="card-body">
-                <p class="card-text">تابع صافي الربح بالتجزئة اليومي أو الأسبوعي أو الشهري.</p>
-                <form action="{{ url_for('profit_report') }}" method="GET" target="_blank">
-                    <div class="mb-3">
-                        <label class="form-label" for="start_date_pr">من تاريخ</label>
-                        <input type="date" class="form-control" id="start_date_pr" name="start_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="end_date_pr">إلى تاريخ</label>
-                        <input type="date" class="form-control" id="end_date_pr" name="end_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="group_by">تفصيل حسب</label>
-                        <select class="form-select" id="group_by" name="group_by">
-                            <option value="day">يوم</option>
-                            <option value="week">أسبوع</option>
-                            <option value="month">شهر</option>
-                        </select>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض الأرباح</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">تقرير العملاء</h5>
-            </div>
-            <div class="card-body">
-                <p class="card-text">أفضل العملاء من حيث حجم المشتريات خلال الفترة.</p>
-                <form action="{{ url_for('customers_report') }}" method="GET" target="_blank">
-                    <div class="mb-3">
-                        <label class="form-label" for="start_date_c">من تاريخ</label>
-                        <input type="date" class="form-control" id="start_date_c" name="start_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="end_date_c">إلى تاريخ</label>
-                        <input type="date" class="form-control" id="end_date_c" name="end_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="limit_c">عدد العملاء</label>
-                        <input type="number" class="form-control" id="limit_c" name="limit" min="1" max="50" value="10">
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">عرض العملاء</button>
-                    </div>
-                </form>
+                <a class="btn btn-outline-success w-100 mt-2" href="{{ url_for('export_damage_excel') }}">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </a>
             </div>
         </div>
     </div>
 </div>
+{% else %}
+<div class="alert alert-warning">التقارير متاحة لمدير النظام فقط.</div>
 {% endif %}
 {% endblock %}

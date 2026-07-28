@@ -1,0 +1,98 @@
+{% extends "base_report.html" %}
+
+{% block title %}تقرير الصرف الداخلي{% endblock %}
+{% block report_title %}تقرير الصرف الداخلي{% endblock %}
+{% block report_subtitle %}الفترة من {{ start_date }} إلى {{ end_date }}{% endblock %}
+
+{% block report_content %}
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card metric-card"><div class="card-body"><div class="label">عدد العمليات</div><div class="value">{{ issues|length }}</div></div></div></div>
+    <div class="col-md-3"><div class="card metric-card"><div class="card-body"><div class="label">إجمالي الكميات</div><div class="value">{{ total_quantity }}</div></div></div></div>
+    <div class="col-md-3"><div class="card metric-card"><div class="card-body"><div class="label">القيمة التقديرية</div><div class="value">{{ "%.2f"|format(total_value) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card metric-card"><div class="card-body"><div class="label">الفروع المتأثرة</div><div class="value">{{ by_branch|length }}</div></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <h6>ملخص حسب الفرع</h6>
+        <table class="table table-bordered table-sm">
+            <thead><tr><th>الفرع</th><th>الكمية</th></tr></thead>
+            <tbody>
+                {% for name, quantity in by_branch %}
+                <tr><td>{{ name }}</td><td>{{ quantity }}</td></tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <h6>أعلى الموظفين صرفاً</h6>
+        <table class="table table-bordered table-sm">
+            <thead><tr><th>الموظف</th><th>الكمية</th></tr></thead>
+            <tbody>
+                {% for name, quantity in by_employee[:10] %}
+                <tr><td>{{ name }}</td><td>{{ quantity }}</td></tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <h6>أعلى الأصناف صرفاً</h6>
+        <table class="table table-bordered table-sm">
+            <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+            <tbody>
+                {% for name, quantity in by_product[:10] %}
+                <tr><td>{{ name }}</td><td>{{ quantity }}</td></tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h6>تفاصيل الصرف</h6>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-sm align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>التاريخ</th>
+                <th>الصنف</th>
+                <th>كود الموظف</th>
+                <th>الموظف</th>
+                <th>الفرع</th>
+                <th>الإدارة</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة</th>
+                <th>القيمة</th>
+                <th>الغرض</th>
+                <th>المسجل</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for issue in issues %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ issue.issue_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ issue.product.name if issue.product else '-' }}</td>
+                <td>{{ issue.employee.employee_code if issue.employee else '-' }}</td>
+                <td>{{ issue.employee.name if issue.employee else '-' }}</td>
+                <td>{{ issue.employee.branch.name if issue.employee and issue.employee.branch else '-' }}</td>
+                <td>{{ issue.employee.department if issue.employee else '-' }}</td>
+                <td>{{ issue.quantity }}</td>
+                <td>{{ "%.2f"|format(issue.product.purchase_price or 0) if issue.product else "0.00" }}</td>
+                <td>{{ "%.2f"|format(issue.quantity * (issue.product.purchase_price or 0)) if issue.product else "0.00" }}</td>
+                <td>{{ issue.purpose or '-' }}</td>
+                <td>{{ issue.user.username if issue.user else '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="12" class="text-center text-muted">لا توجد عمليات صرف في هذه الفترة.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

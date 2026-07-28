@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}الموظفين{% endblock %}
+{% block header %}الموظفين{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>إضافة موظف</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_employee') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.employee_code.label(class="form-label") }}{{ form.employee_code(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.branch_id.label(class="form-label") }}{{ form.branch_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.department.label(class="form-label") }}{{ form.department(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.job_title.label(class="form-label") }}{{ form.job_title(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.phone.label(class="form-label") }}{{ form.phone(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <div class="form-check mb-3">
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
+                    </div>
+                    <button class="btn btn-primary w-100" type="submit">حفظ الموظف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>قائمة الموظفين</strong>
+                <span class="badge bg-secondary">{{ employees|length }}</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>كود الموظف</th>
+                                <th>الاسم</th>
+                                <th>الفرع</th>
+                                <th>الإدارة</th>
+                                <th>الوظيفة</th>
+                                <th>الهاتف</th>
+                                <th>الحالة</th>
+                                <th>تعديل</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employee in employees %}
+                            <tr>
+                                <td><span class="badge bg-dark">{{ employee.employee_code or '-' }}</span></td>
+                                <td>{{ employee.name }}</td>
+                                <td>{{ employee.branch.name if employee.branch else '-' }}</td>
+                                <td>{{ employee.department or '-' }}</td>
+                                <td>{{ employee.job_title or '-' }}</td>
+                                <td>{{ employee.phone or '-' }}</td>
+                                <td>
+                                    {% if employee.is_active %}
+                                    <span class="badge bg-success">نشط</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">غير نشط</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editEmployee{{ employee.id }}">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <div class="modal fade" id="editEmployee{{ employee.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="{{ url_for('edit_employee', id=employee.id) }}">
+                                            {{ form.hidden_tag() }}
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">تعديل موظف</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3"><label class="form-label">كود الموظف</label><input class="form-control" name="employee_code" value="{{ employee.employee_code or '' }}" required></div>
+                                                <div class="mb-3"><label class="form-label">اسم الموظف</label><input class="form-control" name="name" value="{{ employee.name }}" required></div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">الفرع</label>
+                                                    <select class="form-select" name="branch_id">
+                                                        {% for value, label in form.branch_id.choices %}
+                                                        <option value="{{ value }}" {% if employee.branch_id == value or (not employee.branch_id and value == 0) %}selected{% endif %}>{{ label }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3"><label class="form-label">الإدارة / القسم</label><input class="form-control" name="department" value="{{ employee.department or '' }}"></div>
+                                                <div class="mb-3"><label class="form-label">المسمى الوظيفي</label><input class="form-control" name="job_title" value="{{ employee.job_title or '' }}"></div>
+                                                <div class="mb-3"><label class="form-label">رقم الهاتف</label><input class="form-control" name="phone" value="{{ employee.phone or '' }}"></div>
+                                                <div class="mb-3"><label class="form-label">البريد الإلكتروني</label><input class="form-control" name="email" value="{{ employee.email or '' }}"></div>
+                                                <div class="mb-3"><label class="form-label">ملاحظات</label><textarea class="form-control" name="notes" rows="3">{{ employee.notes or '' }}</textarea></div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="is_active" id="employeeActive{{ employee.id }}" {% if employee.is_active %}checked{% endif %}>
+                                                    <label class="form-check-label" for="employeeActive{{ employee.id }}">نشط</label>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-primary" type="submit">حفظ</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <tr><td colspan="8" class="text-center text-muted">لا يوجد موظفون.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

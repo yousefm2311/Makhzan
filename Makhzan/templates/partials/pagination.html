@@ -1,0 +1,21 @@
+{% if page_obj and page_obj.pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not page_obj.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(request.endpoint, page=page_obj.prev_num) if page_obj.has_prev else '#' }}">السابق</a>
+        </li>
+        {% for page in page_obj.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page %}
+            <li class="page-item {% if page == page_obj.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for(request.endpoint, page=page) }}">{{ page }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(request.endpoint, page=page_obj.next_num) if page_obj.has_next else '#' }}">التالي</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
