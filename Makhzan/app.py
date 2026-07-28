@@ -14,8 +14,10 @@ from flask_migrate import Migrate
 import random
 import string
 import smtplib
+import time
 from email.mime.text import MIMEText
 from sqlalchemy import text, func
+from sqlalchemy.exc import OperationalError
 
 def admin_required(f):
     @wraps(f)
@@ -39,8 +41,14 @@ def cashier_required(f):
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///makhzan.db'
+os.makedirs(app.instance_path, exist_ok=True)
+database_path = os.path.join(app.instance_path, 'makhzan.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path.replace('\\', '/')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'connect_args': {'timeout': 5},
+    'pool_pre_ping': True
+}
 
 # Initialize extensions
 db.init_app(app)
@@ -48,6 +56,29 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 migrate = Migrate(app, db)
+
+
+def is_database_locked_error(exc):
+    return 'database is locked' in str(exc).lower()
+
+
+def configure_sqlite():
+    with app.app_context():
+        with db.engine.connect() as conn:
+            conn.exec_driver_sql('PRAGMA busy_timeout=5000')
+
+
+def commit_with_retry(attempts=3, delay=0.2):
+    for attempt in range(attempts):
+        try:
+            db.session.commit()
+            return True
+        except OperationalError as exc:
+            db.session.rollback()
+            if not is_database_locked_error(exc) or attempt == attempts - 1:
+                raise
+            time.sleep(delay * (attempt + 1))
+    return False
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -105,22 +136,34 @@ def ensure_reference_columns():
 
 
 def create_tables():
-    with app.app_context():
-        db.create_all()
-        ensure_due_columns()
-        ensure_reference_columns()
-        # Create admin user if not exists
-        if not User.query.filter_by(username='admin').first():
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                full_name='Admin User',
-                role='admin',
-                is_active=True
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
+    for attempt in range(5):
+        try:
+            with app.app_context():
+                configure_sqlite()
+                db.create_all()
+                ensure_due_columns()
+                ensure_reference_columns()
+                # Create admin user if not exists
+                if not User.query.filter_by(username='admin').first():
+                    admin = User(
+                        username='admin',
+                        email='admin@example.com',
+                        full_name='Admin User',
+                        role='admin',
+                        is_active=True
+                    )
+                    admin.set_password('admin123')
+                    db.session.add(admin)
+                    commit_with_retry()
+            return
+        except OperationalError as exc:
+            db.session.rollback()
+            if not is_database_locked_error(exc) or attempt == 4:
+                raise
+            time.sleep(0.5 * (attempt + 1))
+
+
+create_tables()
 
 
 class SaleProcessingError(Exception):
@@ -1335,7 +1378,14 @@ def add_user():
             return render_template('users/add.html', form=form)
         user.set_password(form.password.data)
         db.session.add(user)
-        db.session.commit()
+        try:
+            commit_with_retry()
+        except OperationalError as exc:
+            db.session.rollback()
+            if is_database_locked_error(exc):
+                flash('قاعدة البيانات مشغولة الآن. أغلق أي نسخة أخرى من البرنامج وحاول مرة أخرى.', 'danger')
+                return render_template('users/add.html', form=form)
+            raise
         flash('تم إضافة المستخدم بنجاح', 'success')
         return redirect(url_for('users'))
     return render_template('users/add.html', form=form)
@@ -1358,7 +1408,14 @@ def edit_user(id):
         user.is_active = form.is_active.data
         if form.password.data:
             user.set_password(form.password.data)
-        db.session.commit()
+        try:
+            commit_with_retry()
+        except OperationalError as exc:
+            db.session.rollback()
+            if is_database_locked_error(exc):
+                flash('قاعدة البيانات مشغولة الآن. أغلق أي نسخة أخرى من البرنامج وحاول مرة أخرى.', 'danger')
+                return render_template('users/edit.html', form=form, user=user)
+            raise
         flash('تم تحديث المستخدم بنجاح', 'success')
         return redirect(url_for('users'))
     return render_template('users/edit.html', form=form, user=user)
@@ -1375,7 +1432,14 @@ def delete_user(id):
         flash('لا يمكنك حذف حسابك الحالي', 'danger')
         return redirect(url_for('users'))
     db.session.delete(user)
-    db.session.commit()
+    try:
+        commit_with_retry()
+    except OperationalError as exc:
+        db.session.rollback()
+        if is_database_locked_error(exc):
+            flash('قاعدة البيانات مشغولة الآن. أغلق أي نسخة أخرى من البرنامج وحاول مرة أخرى.', 'danger')
+            return redirect(url_for('users'))
+        raise
     flash('تم حذف المستخدم بنجاح', 'success')
     return redirect(url_for('users'))
 
@@ -1387,17 +1451,16 @@ def settings():
     if current_user.role != 'admin':
         flash('Access denied for non-admin users.', 'danger')
         return redirect(url_for('index'))
-    store_name = get_or_create_setting('store_name', 'Makhzan Store')
-    store_address = get_or_create_setting('store_address', '')
-    store_phone = get_or_create_setting('store_phone', '')
-    store_email = get_or_create_setting('store_email', '')
-    tax_rate = get_or_create_setting('tax_rate', '0')
-    currency = get_or_create_setting('currency', 'SAR')
-    notification_sender = get_or_create_setting('notification_sender_email', '')
-    notification_password = get_or_create_setting('notification_password', '')
-    notification_sender_name = get_or_create_setting('notification_sender_name', '')
-    db.session.commit()
     if request.method == 'POST':
+        store_name = get_or_create_setting('store_name', 'Makhzan Store')
+        store_address = get_or_create_setting('store_address', '')
+        store_phone = get_or_create_setting('store_phone', '')
+        store_email = get_or_create_setting('store_email', '')
+        tax_rate = get_or_create_setting('tax_rate', '0')
+        currency = get_or_create_setting('currency', 'SAR')
+        notification_sender = get_or_create_setting('notification_sender_email', '')
+        notification_password = get_or_create_setting('notification_password', '')
+        notification_sender_name = get_or_create_setting('notification_sender_name', '')
         store_name.value = request.form.get('store_name', '')
         store_address.value = request.form.get('store_address', '')
         store_phone.value = request.form.get('store_phone', '')
@@ -1409,18 +1472,20 @@ def settings():
         password = request.form.get('notification_password')
         if password:
             notification_password.value = password
-        db.session.commit()
+        commit_with_retry()
         flash('Settings saved successfully.', 'success')
         return redirect(url_for('settings'))
+
+    existing_settings = {setting.key: setting.value for setting in Setting.query.all()}
     return render_template('settings/index.html',
-                          store_name=store_name.value,
-                          store_address=store_address.value,
-                          store_phone=store_phone.value,
-                          store_email=store_email.value,
-                          tax_rate=tax_rate.value,
-                          currency=currency.value,
-                          notification_sender_email=notification_sender.value,
-                          notification_sender_name=notification_sender_name.value)
+                          store_name=existing_settings.get('store_name', 'Makhzan Store'),
+                          store_address=existing_settings.get('store_address', ''),
+                          store_phone=existing_settings.get('store_phone', ''),
+                          store_email=existing_settings.get('store_email', ''),
+                          tax_rate=existing_settings.get('tax_rate', '0'),
+                          currency=existing_settings.get('currency', 'SAR'),
+                          notification_sender_email=existing_settings.get('notification_sender_email', ''),
+                          notification_sender_name=existing_settings.get('notification_sender_name', ''))
 
 
 @app.route('/catalog/import', methods=['GET', 'POST'])
@@ -1440,7 +1505,7 @@ def catalog_import():
         upload.save(destination)
         try:
             processed, created, updated = import_reference_catalog(destination, filename)
-            flash(f'تم استيراد {processed} سجل مرجعي ({created} جديد، {updated} معدل).', 'success')
+            flash(f'تم استيراد {processed} منتج من الملف ({created} جديد، {updated} معدل).', 'success')
         except Exception as exc:
             flash(str(exc), 'danger')
         return redirect(url_for('catalog_import'))
@@ -1452,15 +1517,7 @@ def catalog_import():
 @login_required
 @admin_required
 def catalog_import_sample():
-    sample_path = os.path.join(app.root_path, '..', 'medical_supplies_200_notes.xlsx')
-    if not os.path.exists(sample_path):
-        flash('ملف المنتجات غير موجود في المستودع.', 'danger')
-        return redirect(url_for('catalog_import'))
-    try:
-        processed, created, updated = import_reference_catalog(sample_path, os.path.basename(sample_path))
-        flash(f'تم استيراد {processed} سجل من الملف النموذجي ({created} جديد، {updated} معدل).', 'success')
-    except Exception as exc:
-        flash(str(exc), 'danger')
+    flash('استيراد الملف النموذجي متوقف حتى لا يتم إدخال بيانات غير موجودة في ملفك.', 'warning')
     return redirect(url_for('catalog_import'))
 
 
@@ -1481,7 +1538,7 @@ def category_catalog_import():
         upload.save(destination)
         try:
             processed, created, updated = import_reference_categories(destination, filename)
-            flash(f'تم استيراد {processed} تصنيف مرجعي ({created} جديد، {updated} معدل).', 'success')
+            flash(f'تم استيراد {processed} تصنيف من الملف ({created} جديد، {updated} معدل).', 'success')
         except Exception as exc:
             flash(str(exc), 'danger')
         return redirect(url_for('category_catalog_import'))
@@ -1493,15 +1550,7 @@ def category_catalog_import():
 @login_required
 @admin_required
 def category_catalog_import_sample():
-    sample_path = os.path.join(app.root_path, '..', 'medical_categories_notes.xlsx')
-    if not os.path.exists(sample_path):
-        flash('ملف التصنيفات غير موجود في المستودع.', 'danger')
-        return redirect(url_for('category_catalog_import'))
-    try:
-        processed, created, updated = import_reference_categories(sample_path, os.path.basename(sample_path))
-        flash(f'تم استيراد {processed} تصنيف من الملف النموذجي ({created} جديد، {updated} معدل).', 'success')
-    except Exception as exc:
-        flash(str(exc), 'danger')
+    flash('استيراد الملف النموذجي متوقف حتى لا يتم إدخال بيانات غير موجودة في ملفك.', 'warning')
     return redirect(url_for('category_catalog_import'))
 
 
@@ -1565,7 +1614,7 @@ def set_theme():
         db.session.add(theme_setting)
     else:
         theme_setting.value = theme
-    db.session.commit()
+    commit_with_retry()
     return '', 204
 
 # Profile route
@@ -1734,7 +1783,106 @@ def extract_due_details(total_amount, form_data):
     return amount_paid, due_date, notification_email or None
 
 
-def import_reference_catalog(filepath, source_label=None):
+def clean_excel_value(value):
+    if value is None:
+        return ''
+    return str(value).strip()
+
+
+def safe_excel_float(value, default=0.0):
+    if value is None or value == '':
+        return default
+    if isinstance(value, str):
+        arabic_digits = str.maketrans('٠١٢٣٤٥٦٧٨٩٫٬', '0123456789.,')
+        cleaned = value.translate(arabic_digits).strip()
+        numeric_chars = []
+        started = False
+        for char in cleaned:
+            if char.isdigit():
+                numeric_chars.append(char)
+                started = True
+            elif char in ('.', ',') and started:
+                numeric_chars.append(char)
+            elif started:
+                break
+            else:
+                continue
+        numeric_value = ''.join(numeric_chars).strip('.,')
+        if not numeric_value:
+            return default
+        value = numeric_value
+        last_dot = numeric_value.rfind('.')
+        last_comma = numeric_value.rfind(',')
+        decimal_pos = max(last_dot, last_comma)
+        if last_dot != -1 and last_comma != -1:
+            value = ''.join(ch for i, ch in enumerate(numeric_value) if ch.isdigit() or i == decimal_pos)
+            value = value.replace(',', '.')
+        elif decimal_pos != -1:
+            separator = numeric_value[decimal_pos]
+            digits_after = len(numeric_value) - decimal_pos - 1
+            digits_before = decimal_pos
+            if digits_after == 3 and digits_before > 3:
+                value = numeric_value.replace(separator, '')
+            else:
+                value = numeric_value.replace(separator, '.')
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def safe_excel_int(value, default=0):
+    if value is None or value == '':
+        return default
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def find_product_for_import(name, sku='', barcode=''):
+    product = None
+    if barcode:
+        product = Product.query.filter_by(barcode=barcode).first()
+    if not product and sku:
+        product = Product.query.filter_by(sku=sku).first()
+    if not product:
+        product = Product.query.filter(func.lower(Product.name) == name.lower()).first()
+    return product
+
+
+def find_or_create_category_for_import(name, notes=''):
+    if not name:
+        return None, False
+
+    category = Category.query.filter(func.lower(Category.name) == name.lower()).first()
+    if category:
+        if notes:
+            if not category.description:
+                category.description = notes
+            category.notes = notes
+        return category, False
+
+    category = Category(name=name, description=notes or None, notes=notes or None)
+    db.session.add(category)
+    db.session.flush()
+    return category, True
+
+
+def reset_product_catalog_for_import():
+    if SaleItem.query.first() or PurchaseItem.query.first():
+        raise ValueError('لا يمكن استبدال الكتالوج لأن هناك فواتير بيع أو شراء مرتبطة بالمنتجات الحالية.')
+
+    InventoryTransaction.query.delete(synchronize_session=False)
+    Inventory.query.delete(synchronize_session=False)
+    Product.query.delete(synchronize_session=False)
+    ReferenceProduct.query.delete(synchronize_session=False)
+    Category.query.delete(synchronize_session=False)
+    ReferenceCategory.query.delete(synchronize_session=False)
+    db.session.flush()
+
+
+def import_reference_catalog(filepath, source_label=None, replace_existing=False):
     try:
         from openpyxl import load_workbook
     except ImportError as exc:
@@ -1755,22 +1903,49 @@ def import_reference_catalog(filepath, source_label=None):
     # تجهيز العناوين
     normalized_headers = [str(col).strip().lower() if col else '' for col in header_row]
 
-    def find_index(keywords):
+    def find_index(keywords, exclude=None, exact_keywords=None):
+        exclude = set(exclude or [])
+        exact_keywords = exact_keywords or []
         for idx, header in enumerate(normalized_headers):
+            if idx in exclude:
+                continue
+            if any(header == keyword for keyword in exact_keywords):
+                return idx
+        for idx, header in enumerate(normalized_headers):
+            if idx in exclude:
+                continue
             if any(keyword in header for keyword in keywords):
                 return idx
         return None
 
     # البحث عن الأعمدة
-    name_idx = find_index(['اسم المنتج', 'product'])
-    sku_idx = find_index(['sku'])
-    barcode_idx = find_index(['barcode', 'code', 'باركود'])
-    desc_idx = find_index(['desc', 'description', 'وصف'])
+    name_idx = find_index(['اسم المنتج', 'product', 'product name'], exact_keywords=['اسم المنتج'])
+    category_idx = find_index(['تصنيف', 'category', 'classification'], exact_keywords=['التصنيف'])
+    barcode_idx = find_index(['barcode', 'code', 'باركود'], exact_keywords=['الباركود', 'barcode'])
+    sku_idx = find_index(['sku', 'رمز المنتج'], exact_keywords=['رمز المنتج (sku)', 'sku'])
+    purchase_price_idx = find_index(['purchase price', 'cost', 'buy price', 'سعر الشراء'], exact_keywords=['سعر الشراء'])
+    sale_price_idx = find_index(['sale price', 'selling price', 'سعر البيع'], exact_keywords=['سعر البيع'])
+    min_quantity_idx = find_index(['min quantity', 'minimum quantity', 'min stock', 'الحد الأدنى'], exact_keywords=['الحد الأدنى للكمية'])
+    quantity_idx = find_index(
+        ['initial quantity', 'opening quantity', 'start quantity', 'الكمية الأولية'],
+        exclude=[min_quantity_idx],
+        exact_keywords=['الكمية الأولية']
+    )
+    if quantity_idx is None:
+        quantity_idx = find_index(['quantity', 'qty', 'الكمية'], exclude=[min_quantity_idx])
+    desc_idx = find_index(['desc', 'description', 'وصف'], exact_keywords=['الوصف'])
     notes_idx = find_index(['notes', 'ملاحظات', 'remarks', 'comments'])
+    if sale_price_idx is None:
+        sale_price_idx = find_index(['price'], exclude=[purchase_price_idx])
+        if sale_price_idx == purchase_price_idx:
+            sale_price_idx = None
 
     # لو مفيش عمود اسم المنتج
     if name_idx is None:
         raise ValueError('لم يتم العثور على عمود اسم المنتج داخل ملف Excel.')
+
+    if replace_existing:
+        reset_product_catalog_for_import()
 
     processed = created = updated = 0
     source_label = source_label or os.path.basename(filepath)
@@ -1787,22 +1962,15 @@ def import_reference_catalog(filepath, source_label=None):
         if not name:
             continue
 
-        sku = ''
-        barcode = ''
-        description = ''
-        notes = ''
-
-        if sku_idx is not None and sku_idx < len(row) and row[sku_idx]:
-            sku = str(row[sku_idx]).strip()
-
-        if barcode_idx is not None and barcode_idx < len(row) and row[barcode_idx]:
-            barcode = str(row[barcode_idx]).strip()
-
-        if desc_idx is not None and desc_idx < len(row) and row[desc_idx]:
-            description = str(row[desc_idx]).strip()
-
-        if notes_idx is not None and notes_idx < len(row) and row[notes_idx]:
-            notes = str(row[notes_idx]).strip()
+        sku = clean_excel_value(row[sku_idx]) if sku_idx is not None and sku_idx < len(row) else ''
+        barcode = clean_excel_value(row[barcode_idx]) if barcode_idx is not None and barcode_idx < len(row) else ''
+        description = clean_excel_value(row[desc_idx]) if desc_idx is not None and desc_idx < len(row) else ''
+        notes = clean_excel_value(row[notes_idx]) if notes_idx is not None and notes_idx < len(row) else ''
+        category_name = clean_excel_value(row[category_idx]) if category_idx is not None and category_idx < len(row) else ''
+        purchase_price = safe_excel_float(row[purchase_price_idx]) if purchase_price_idx is not None and purchase_price_idx < len(row) else 0.0
+        sale_price = safe_excel_float(row[sale_price_idx]) if sale_price_idx is not None and sale_price_idx < len(row) else 0.0
+        min_quantity = safe_excel_int(row[min_quantity_idx]) if min_quantity_idx is not None and min_quantity_idx < len(row) else 0
+        quantity = safe_excel_int(row[quantity_idx]) if quantity_idx is not None and quantity_idx < len(row) else 0
 
         processed += 1
 
@@ -1830,7 +1998,6 @@ def import_reference_catalog(filepath, source_label=None):
                 source_file=source_label
             )
             db.session.add(reference)
-            created += 1
 
         # تحديث القديم
         else:
@@ -1840,6 +2007,45 @@ def import_reference_catalog(filepath, source_label=None):
             reference.description = description or reference.description
             reference.notes = notes or reference.notes
             reference.source_file = source_label
+
+        category = None
+        if category_name:
+            category, _ = find_or_create_category_for_import(category_name)
+
+        product = find_product_for_import(name, sku, barcode)
+        if not product:
+            product = Product(
+                name=name,
+                description=description or notes or None,
+                barcode=barcode or None,
+                sku=sku or None,
+                purchase_price=purchase_price,
+                sale_price=sale_price,
+                min_quantity=min_quantity,
+                category_id=category.id if category else None
+            )
+            db.session.add(product)
+            db.session.flush()
+            db.session.add(Inventory(product_id=product.id, quantity=quantity))
+            created += 1
+        else:
+            product.name = name
+            if description or notes:
+                product.description = description or notes
+            if sku and not product.sku:
+                product.sku = sku
+            if barcode and not product.barcode:
+                product.barcode = barcode
+            if purchase_price_idx is not None:
+                product.purchase_price = purchase_price
+            if sale_price_idx is not None:
+                product.sale_price = sale_price
+            if min_quantity_idx is not None:
+                product.min_quantity = min_quantity
+            if category and not product.category_id:
+                product.category_id = category.id
+            if not product.inventory:
+                db.session.add(Inventory(product_id=product.id, quantity=quantity))
             updated += 1
 
     if processed:
@@ -1847,7 +2053,14 @@ def import_reference_catalog(filepath, source_label=None):
 
     return processed, created, updated
 
-def import_reference_categories(filepath, source_label=None):
+def reset_category_catalog_for_import():
+    ReferenceCategory.query.delete(synchronize_session=False)
+    if not Product.query.first():
+        Category.query.delete(synchronize_session=False)
+    db.session.flush()
+
+
+def import_reference_categories(filepath, source_label=None, replace_existing=False):
     try:
         from openpyxl import load_workbook
     except ImportError as exc:
@@ -1877,6 +2090,9 @@ def import_reference_categories(filepath, source_label=None):
     if name_idx is None:
         raise ValueError('الملف لا يحتوي على عمود اسم التصنيف.')
 
+    if replace_existing:
+        reset_category_catalog_for_import()
+
     processed = created = updated = 0
     source_label = source_label or os.path.basename(filepath)
 
@@ -1904,11 +2120,15 @@ def import_reference_categories(filepath, source_label=None):
                 source_file=source_label
             )
             db.session.add(reference)
-            created += 1
         else:
             reference.name = name
             reference.notes = notes or reference.notes
             reference.source_file = source_label
+
+        _, was_created = find_or_create_category_for_import(name, notes)
+        if was_created:
+            created += 1
+        else:
             updated += 1
 
     if processed:
@@ -1989,5 +2209,4 @@ def inject_settings():
     return dict(settings=settings)
 
 if __name__ == '__main__':
-    create_tables()  # Call the function to create tables and admin user
-    app.run(debug=True)
+    app.run(debug=True, port=5001, use_reloader=False)

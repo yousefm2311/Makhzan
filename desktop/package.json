@@ -4,7 +4,7 @@
   "private": true,
   "main": "main.js",
   "scripts": {
-    "start": "concurrently \"py -3 ../Makhzan/app.py\" \"wait-on http://localhost:5000 && ..\\desktop_electron\\node_modules\\.bin\\electron .\""
+    "start": "concurrently \"..\\.venv\\Scripts\\python.exe ..\\Makhzan\\app.py\" \"wait-on http://localhost:5001 && ..\\desktop_electron\\node_modules\\.bin\\electron .\""
   },
   "devDependencies": {
     "concurrently": "^8.2.0",

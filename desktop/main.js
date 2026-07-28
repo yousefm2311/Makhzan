@@ -10,7 +10,7 @@ function createMainWindow() {
     },
     autoHideMenuBar: true,
   });
-  win.loadURL('http://localhost:5000');
+  win.loadURL('http://localhost:5001');
   win.on('closed', () => {
     win = null;
   });
