@@ -46,6 +46,15 @@ def roles_required(*roles):
         return decorated_function
     return decorator
 
+
+def warehouse_required(f):
+    return roles_required('admin', 'warehouse_manager')(f)
+
+
+def report_required(f):
+    return roles_required('admin', 'warehouse_manager', 'auditor')(f)
+
+
 def cashier_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -156,7 +165,10 @@ def excel_response(filename, headers, rows, title=None):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user = User.query.get(int(user_id))
+    if user and not user.is_active:
+        return None
+    return user
 
 # Create database tables and admin user
 def ensure_due_columns():
@@ -459,7 +471,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data):
+        if user and user.is_active and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
@@ -485,7 +497,7 @@ def categories():
 
 @app.route('/categories/add', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def add_category():
     form = CategoryForm()
     if form.validate_on_submit():
@@ -504,7 +516,7 @@ def add_category():
 
 @app.route('/categories/edit/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def edit_category(id):
     category = Category.query.get_or_404(id)
     
@@ -519,7 +531,7 @@ def edit_category(id):
 
 @app.route('/categories/delete/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def delete_category(id):
     category = Category.query.get_or_404(id)
     db.session.delete(category)
@@ -555,7 +567,7 @@ def products():
 
 @app.route('/products/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def add_product():
     form = ProductForm()
     
@@ -654,7 +666,7 @@ def add_product():
 
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def edit_product(id):
     product = Product.query.get_or_404(id)
     form = ProductForm(obj=product)
@@ -710,7 +722,7 @@ def edit_product(id):
 
 @app.route('/products/delete/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def delete_product(id):
     product = Product.query.get_or_404(id)
     # احذف كل حركات المخزون المرتبطة بالمنتج
@@ -734,7 +746,7 @@ def suppliers():
 
 @app.route('/suppliers/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def add_supplier():
     form = SupplierForm()
     if form.validate_on_submit():
@@ -755,7 +767,7 @@ def add_supplier():
 
 @app.route('/suppliers/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def edit_supplier(id):
     supplier = Supplier.query.get_or_404(id)
     form = SupplierForm(obj=supplier)
@@ -775,7 +787,7 @@ def edit_supplier(id):
 
 @app.route('/suppliers/delete/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def delete_supplier(id):
     supplier = Supplier.query.get_or_404(id)
     db.session.delete(supplier)
@@ -852,7 +864,7 @@ def purchases():
 
 @app.route('/purchases/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def add_purchase():
     from forms import PurchaseForm
     form = PurchaseForm()
@@ -1123,7 +1135,7 @@ def inventory():
 
 @app.route('/inventory/adjustment', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def inventory_adjustment():
     from forms import InventoryAdjustmentForm
     form = InventoryAdjustmentForm()
@@ -1194,7 +1206,7 @@ def populate_product_employee_choices(form):
 
 @app.route('/branches')
 @login_required
-@admin_required
+@warehouse_required
 def branches():
     branches = Branch.query.order_by(Branch.is_active.desc(), Branch.name).all()
     form = BranchForm()
@@ -1203,7 +1215,7 @@ def branches():
 
 @app.route('/branches/add', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def add_branch():
     form = BranchForm()
     if form.validate_on_submit():
@@ -1228,7 +1240,7 @@ def add_branch():
 
 @app.route('/branches/edit/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def edit_branch(id):
     branch = Branch.query.get_or_404(id)
     form = BranchForm()
@@ -1295,7 +1307,7 @@ def add_storage_location():
 
 @app.route('/employees')
 @login_required
-@admin_required
+@warehouse_required
 def employees():
     employees = Employee.query.options(joinedload(Employee.branch)).order_by(Employee.is_active.desc(), Employee.name).all()
     form = EmployeeForm()
@@ -1305,7 +1317,7 @@ def employees():
 
 @app.route('/employees/add', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def add_employee():
     form = EmployeeForm()
     populate_employee_form_choices(form)
@@ -1335,7 +1347,7 @@ def add_employee():
 
 @app.route('/employees/edit/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def edit_employee(id):
     employee = Employee.query.get_or_404(id)
     form = EmployeeForm()
@@ -1364,7 +1376,7 @@ def edit_employee(id):
 
 @app.route('/inventory/issue', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def stock_issue():
     form = StockIssueForm()
     products = Product.query.order_by(Product.name).all()
@@ -1427,7 +1439,7 @@ def stock_issue():
 
 @app.route('/inventory/damage', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@warehouse_required
 def damage_record():
     form = DamageRecordForm()
     products = Product.query.order_by(Product.name).all()
@@ -1504,6 +1516,8 @@ def issue_requests():
     )
     if status != 'all':
         query = query.filter_by(status=status)
+    if current_user.role not in ('admin', 'approver', 'warehouse_manager', 'auditor'):
+        query = query.filter_by(requested_by_id=current_user.id)
     requests_page = query.order_by(StockIssueRequest.requested_at.desc()).paginate(
         page=request.args.get('page', 1, type=int),
         per_page=25,
@@ -1611,6 +1625,8 @@ def employee_returns():
             inventory.quantity += form.quantity.data
             after = inventory.quantity
             transaction_type = 'employee_return'
+        elif user and not user.is_active:
+            flash('هذا المستخدم غير نشط. راجع مدير النظام.', 'danger')
         else:
             after = inventory.quantity
             transaction_type = 'employee_return_review'
@@ -1741,6 +1757,7 @@ def approve_stocktake(id):
 # Reports routes
 @app.route('/reports')
 @login_required
+@report_required
 def reports():
     categories = Category.query.order_by(Category.name).all()
     branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
@@ -1813,7 +1830,7 @@ def sales_report():
 
 @app.route('/reports/purchases')
 @login_required
-@admin_required
+@report_required
 def purchases_report():
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
@@ -1874,7 +1891,7 @@ def purchases_report():
 
 @app.route('/reports/inventory')
 @login_required
-@admin_required
+@report_required
 def inventory_report():
     status = request.args.get('status', 'all')
     category_id = request.args.get('category_id', type=int)
@@ -1903,7 +1920,7 @@ def inventory_report():
 
 @app.route('/reports/issues')
 @login_required
-@admin_required
+@report_required
 def issues_report():
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
@@ -1949,7 +1966,7 @@ def issues_report():
 
 @app.route('/reports/damage')
 @login_required
-@admin_required
+@report_required
 def damage_report():
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
@@ -2062,6 +2079,8 @@ def export_damage_excel():
     )
 
 @app.route('/reports/top-selling', methods=['GET'])
+@login_required
+@admin_required
 def top_selling_report():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -2178,7 +2197,7 @@ def customers_report():
 
 @app.route('/activity')
 @login_required
-@admin_required
+@report_required
 def activity():
     logs_page = InventoryTransaction.query.options(joinedload(InventoryTransaction.user), joinedload(InventoryTransaction.product)).order_by(InventoryTransaction.timestamp.desc()).paginate(
         page=request.args.get('page', 1, type=int),
@@ -2244,6 +2263,8 @@ def add_user():
             return render_template('users/add.html', form=form)
         user.set_password(form.password.data)
         db.session.add(user)
+        db.session.flush()
+        audit_log('create_user', 'User', user.id, f'إنشاء مستخدم {user.username} بصلاحية {user.role}')
         try:
             commit_with_retry()
         except OperationalError as exc:
@@ -2274,6 +2295,7 @@ def edit_user(id):
         user.is_active = form.is_active.data
         if form.password.data:
             user.set_password(form.password.data)
+        audit_log('update_user', 'User', user.id, f'تعديل مستخدم {user.username} بصلاحية {user.role}')
         try:
             commit_with_retry()
         except OperationalError as exc:
@@ -2297,6 +2319,8 @@ def delete_user(id):
     if user.id == current_user.id:
         flash('لا يمكنك حذف حسابك الحالي', 'danger')
         return redirect(url_for('users'))
+    username = user.username
+    audit_log('delete_user', 'User', user.id, f'حذف مستخدم {username}')
     db.session.delete(user)
     try:
         commit_with_retry()
@@ -2576,7 +2600,7 @@ def mark_sale_paid(id):
 
 @app.route('/purchases/due')
 @login_required
-@admin_required
+@warehouse_required
 def purchases_due():
     due_purchases = Purchase.query.filter(
         Purchase.payment_method == 'majel',
@@ -2590,7 +2614,7 @@ def purchases_due():
 
 @app.route('/purchases/due/notify/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def notify_due_purchase(id):
     purchase = Purchase.query.get_or_404(id)
     if purchase.payment_method != 'majel' or purchase.due_amount <= 0 or purchase.status == 'cancelled':
@@ -2613,7 +2637,7 @@ def notify_due_purchase(id):
 
 @app.route('/purchases/due/mark-paid/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@warehouse_required
 def mark_purchase_paid(id):
     purchase = Purchase.query.get_or_404(id)
     purchase.amount_paid = purchase.total_amount
@@ -3072,7 +3096,13 @@ def schedule_due_reminders(records, entity_label):
 def inject_settings():
     from models import Setting
     settings = {s.key: s.value for s in Setting.query.all()}
-    return dict(settings=settings)
+
+    def page_url(page):
+        args = request.args.to_dict(flat=True)
+        args['page'] = page
+        return url_for(request.endpoint, **(request.view_args or {}), **args)
+
+    return dict(settings=settings, page_url=page_url)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001, use_reloader=False)

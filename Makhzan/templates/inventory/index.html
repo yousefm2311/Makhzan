@@ -7,7 +7,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        {% if current_user.role == 'admin' %}
+        {% if current_user.role in ['admin', 'warehouse_manager'] %}
         <a href="{{ url_for('inventory_adjustment') }}" class="btn btn-primary">
             <i class="fas fa-plus-minus"></i> تعديل المخزون
         </a>
@@ -64,13 +64,13 @@
                         <td>{{ item[0].category.name if item[0].category else 'بدون تصنيف' }}</td>
                         <td>{{ item[1].quantity }}</td>
                         <td>{{ item[0].min_quantity }}</td>
-                        {% if current_user.role == 'admin' %}
+                        {% if current_user.role in ['admin', 'warehouse_manager'] %}
                         <td>{{ "%.2f"|format(item[0].purchase_price) }}</td>
                         {% else %}
                         <td>-</td>
                         {% endif %}
                         <td>{{ "%.2f"|format(item[0].sale_price) }}</td>
-                        {% if current_user.role == 'admin' %}
+                        {% if current_user.role in ['admin', 'warehouse_manager'] %}
                         <td>{{ "%.2f"|format(item[1].quantity * item[0].purchase_price) }}</td>
                         {% else %}
                         <td>-</td>
@@ -89,7 +89,7 @@
                                 <a href="{{ url_for('product_transactions', id=item[0].id) }}" class="btn btn-sm btn-outline-info" title="سجل الحركات">
                                     <i class="fas fa-history"></i>
                                 </a>
-                                {% if current_user.role == 'admin' %}
+                                {% if current_user.role in ['admin', 'warehouse_manager'] %}
                                 <a href="{{ url_for('edit_product', id=item[0].id) }}" class="btn btn-sm btn-outline-primary" title="تعديل المنتج">
                                     <i class="fas fa-edit"></i>
                                 </a>

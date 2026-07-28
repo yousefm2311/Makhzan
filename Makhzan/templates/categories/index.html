@@ -5,7 +5,7 @@
 {% block header %}فئات المنتجات{% endblock %}
 
 {% block header_buttons %}
-{% if current_user.role == 'admin' %}
+{% if current_user.role in ['admin', 'warehouse_manager'] %}
 <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
     <i class="fas fa-plus"></i> إضافة فئة جديدة
 </button>
@@ -34,7 +34,7 @@
                         <td>{{ category.description }}</td>
                         <td>{{ category.products|length }}</td>
                         <td>
-                            {% if current_user.role == 'admin' %}
+                            {% if current_user.role in ['admin', 'warehouse_manager'] %}
                             <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ category.id }}">
                                 <i class="fas fa-edit"></i>
                             </button>
