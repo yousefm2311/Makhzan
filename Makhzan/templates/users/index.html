@@ -35,6 +35,7 @@
                         <th>اسم المستخدم</th>
                         <th>البريد الإلكتروني</th>
                         <th>الصلاحية</th>
+                        <th>نطاق الفرع</th>
                         <th>الحالة</th>
                         <th>تاريخ التسجيل</th>
                         <th>الإجراءات</th>
@@ -48,6 +49,7 @@
                         <td>{{ user.username }}</td>
                         <td>{{ user.email }}</td>
                         <td><span class="badge bg-{{ role_info[1] }}">{{ role_info[0] }}</span></td>
+                        <td>{{ user.branch.name if user.branch else 'كل الفروع' }}</td>
                         <td>
                             {% if user.is_active %}
                             <span class="badge bg-success">نشط</span>
@@ -87,7 +89,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="7" class="text-center text-muted">لا يوجد مستخدمون.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">لا يوجد مستخدمون.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

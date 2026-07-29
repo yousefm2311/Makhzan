@@ -32,7 +32,12 @@
                                 <td>{{ item.count_number }}</td>
                                 <td>{{ item.count_date.strftime('%Y-%m-%d') }}</td>
                                 <td>{{ item.branch.name if item.branch else '-' }}</td>
-                                <td>{% if item.status == 'approved' %}<span class="badge bg-success">معتمد</span>{% else %}<span class="badge bg-warning text-dark">مسودة</span>{% endif %}</td>
+                                <td>
+                                    {% if item.status == 'approved' %}<span class="badge bg-success">معتمد</span>
+                                    {% elif item.status == 'submitted' %}<span class="badge bg-info">مرسل للاعتماد</span>
+                                    {% elif item.status == 'rejected' %}<span class="badge bg-danger">مرفوض</span>
+                                    {% else %}<span class="badge bg-warning text-dark">مسودة</span>{% endif %}
+                                </td>
                                 <td>{{ item.created_by.username if item.created_by else '-' }}</td>
                                 <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('view_stocktake', id=item.id) }}">فتح</a></td>
                             </tr>

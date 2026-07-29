@@ -8,6 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @media print {
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
             .no-print { display: none !important; }
             body { padding: 0; margin: 0; background: #fff; }
             .container { width: 100%; max-width: 100%; padding: 0; margin: 0; }
@@ -50,6 +54,19 @@
         .table th {
             background: #f1f3f5;
             white-space: nowrap;
+        }
+        .table {
+            table-layout: fixed;
+            width: 100%;
+            font-size: 8px;
+        }
+        .table th, .table td {
+            padding: 3px 4px;
+            word-break: break-word;
+            vertical-align: middle;
+        }
+        .badge {
+            white-space: normal;
         }
         .signature-line {
             border-top: 1px solid #adb5bd;

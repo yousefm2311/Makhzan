@@ -66,6 +66,13 @@
                             {{ form.role.label(class="form-label") }}
                             {{ form.role(class="form-select") }}
                         {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.branch_id.label(class="form-label") }}
+                        {{ form.branch_id(class="form-select") }}
+                        <div class="form-text">اتركه على كل الفروع لحسابات الإدارة العامة فقط.</div>
+                    </div>
+                    <div class="mb-3 form-check">
                         {{ form.is_active(class="form-check-input") }}
                         {{ form.is_active.label(class="form-check-label ms-2") }}
                     </div>

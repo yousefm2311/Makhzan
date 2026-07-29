@@ -14,8 +14,11 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(128), nullable=False)
     full_name = db.Column(db.String(100), nullable=True)
     role = db.Column(db.String(30), default='user')
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    branch = db.relationship('Branch', foreign_keys=[branch_id], lazy=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
@@ -257,8 +260,30 @@ class StorageLocation(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    stocks = db.relationship('ProductLocationStock', backref='location', lazy=True)
+
     def __repr__(self):
         return f'<StorageLocation {self.code}>'
+
+
+class ProductLocationStock(db.Model):
+    __tablename__ = 'product_location_stocks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('storage_locations.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
+    notes = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    product = db.relationship('Product', backref='location_stocks', lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('product_id', 'location_id', name='uq_product_location_stock'),
+    )
+
+    def __repr__(self):
+        return f'<ProductLocationStock {self.product_id}:{self.location_id}>'
 
 
 class InventoryTransaction(db.Model):
@@ -364,6 +389,9 @@ class StockIssueRequest(db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     executed_at = db.Column(db.DateTime, nullable=True)
     rejected_at = db.Column(db.DateTime, nullable=True)
+    approved_signature = db.Column(db.String(200), nullable=True)
+    executed_signature = db.Column(db.String(200), nullable=True)
+    rejected_signature = db.Column(db.String(200), nullable=True)
     rejection_reason = db.Column(db.Text, nullable=True)
     stock_issue_id = db.Column(db.Integer, db.ForeignKey('stock_issues.id'), nullable=True)
 
@@ -392,6 +420,7 @@ class EmployeeReturn(db.Model):
     notes = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    signed_signature = db.Column(db.String(200), nullable=True)
 
     product = db.relationship('Product', backref='employee_returns', lazy=True)
     employee = db.relationship('Employee', backref='returns', lazy=True)
@@ -412,12 +441,18 @@ class Stocktake(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     approved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    rejected_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     approved_at = db.Column(db.DateTime, nullable=True)
+    rejected_at = db.Column(db.DateTime, nullable=True)
+    approved_signature = db.Column(db.String(200), nullable=True)
+    rejected_signature = db.Column(db.String(200), nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
 
     branch = db.relationship('Branch', backref='stocktakes', lazy=True)
     created_by = db.relationship('User', foreign_keys=[created_by_id], lazy=True)
     approved_by = db.relationship('User', foreign_keys=[approved_by_id], lazy=True)
+    rejected_by = db.relationship('User', foreign_keys=[rejected_by_id], lazy=True)
     items = db.relationship('StocktakeItem', backref='stocktake', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):

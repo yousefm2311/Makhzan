@@ -52,13 +52,22 @@
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         {% if can_approve and req.status == 'pending' %}
-                                        <form method="POST" action="{{ url_for('approve_issue_request', id=req.id) }}"><button class="btn btn-outline-success">اعتماد</button></form>
+                                        <form method="POST" action="{{ url_for('approve_issue_request', id=req.id) }}" class="d-flex gap-1">
+                                            <input type="password" name="signature_password" class="form-control form-control-sm" placeholder="كلمة المرور" required>
+                                            <button class="btn btn-outline-success">اعتماد</button>
+                                        </form>
                                         {% endif %}
                                         {% if can_execute and req.status == 'approved' %}
-                                        <form method="POST" action="{{ url_for('execute_issue_request', id=req.id) }}"><button class="btn btn-outline-primary">تنفيذ</button></form>
+                                        <form method="POST" action="{{ url_for('execute_issue_request', id=req.id) }}" class="d-flex gap-1">
+                                            <input type="password" name="signature_password" class="form-control form-control-sm" placeholder="كلمة المرور" required>
+                                            <button class="btn btn-outline-primary">تنفيذ</button>
+                                        </form>
                                         {% endif %}
                                         {% if can_approve and req.status in ['pending','approved'] %}
-                                        <form method="POST" action="{{ url_for('reject_issue_request', id=req.id) }}"><button class="btn btn-outline-danger">رفض</button></form>
+                                        <form method="POST" action="{{ url_for('reject_issue_request', id=req.id) }}" class="d-flex gap-1">
+                                            <input type="password" name="signature_password" class="form-control form-control-sm" placeholder="كلمة المرور" required>
+                                            <button class="btn btn-outline-danger">رفض</button>
+                                        </form>
                                         {% endif %}
                                     </div>
                                 </td>

@@ -92,6 +92,7 @@ class ReportForm(FlaskForm):
 class UserForm(FlaskForm):
     username = StringField('اسم المستخدم', validators=[DataRequired(), Length(min=3, max=64)])
     email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])
+    branch_id = SelectField('نطاق الفرع', coerce=int, validators=[Optional()])
     role = SelectField('الصلاحية', choices=[
         ('admin', 'ادمن'),
         ('warehouse_manager', 'مدير مخزن'),
@@ -120,6 +121,13 @@ class StorageLocationForm(FlaskForm):
     location_type = StringField('نوع الموقع', validators=[Optional(), Length(max=50)])
     notes = TextAreaField('ملاحظات', validators=[Optional()])
     is_active = BooleanField('نشط', default=True)
+
+
+class ProductLocationStockForm(FlaskForm):
+    product_id = SelectField('الصنف', coerce=int, validators=[DataRequired()])
+    location_id = SelectField('موقع التخزين', coerce=int, validators=[DataRequired()])
+    quantity = IntegerField('الكمية في الموقع', validators=[DataRequired(), NumberRange(min=0)])
+    notes = TextAreaField('ملاحظات', validators=[Optional()])
 
 
 class EmployeeForm(FlaskForm):

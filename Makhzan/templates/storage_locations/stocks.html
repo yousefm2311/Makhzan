@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}كميات مواقع التخزين{% endblock %}
+{% block header %}كميات الأصناف داخل مواقع التخزين{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header"><strong>تحديث كمية موقع</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.product_id.label(class="form-label") }}{{ form.product_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.location_id.label(class="form-label") }}{{ form.location_id(class="form-select") }}</div>
+                    <div class="mb-3">{{ form.quantity.label(class="form-label") }}{{ form.quantity(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <button class="btn btn-primary w-100" type="submit">حفظ الكمية</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><strong>توزيع الكميات على المواقع</strong></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>الصنف</th>
+                                <th>كود الموقع</th>
+                                <th>الموقع</th>
+                                <th>الفرع</th>
+                                <th>الكمية</th>
+                                <th>آخر تحديث</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in stocks_page.items %}
+                            <tr>
+                                <td>{{ stock.product.name if stock.product else '-' }}</td>
+                                <td><span class="badge bg-dark">{{ stock.location.code if stock.location else '-' }}</span></td>
+                                <td>{{ stock.location.name if stock.location else '-' }}</td>
+                                <td>{{ stock.location.branch.name if stock.location and stock.location.branch else '-' }}</td>
+                                <td>{{ stock.quantity }}</td>
+                                <td>{{ stock.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ stock.notes or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center text-muted">لا توجد كميات موزعة على مواقع.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% set page_obj = stocks_page %}
+                {% include "partials/pagination.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

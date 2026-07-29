@@ -6,8 +6,17 @@
 {% block header_buttons %}
 <a href="{{ url_for('stocktakes') }}" class="btn btn-outline-secondary">رجوع</a>
 {% if stocktake.status == 'draft' %}
+<form method="POST" action="{{ url_for('submit_stocktake', id=stocktake.id) }}" class="d-inline">
+    <button class="btn btn-primary" type="submit">إرسال للاعتماد</button>
+</form>
+{% elif stocktake.status == 'submitted' and current_user.role in ['admin', 'warehouse_manager'] %}
 <form method="POST" action="{{ url_for('approve_stocktake', id=stocktake.id) }}" class="d-inline">
+    <input type="password" name="signature_password" class="form-control form-control-sm d-inline-block w-auto" placeholder="كلمة المرور" required>
     <button class="btn btn-success" type="submit">اعتماد وتسوية الفروقات</button>
+</form>
+<form method="POST" action="{{ url_for('reject_stocktake', id=stocktake.id) }}" class="d-inline">
+    <input type="password" name="signature_password" class="form-control form-control-sm d-inline-block w-auto" placeholder="كلمة المرور" required>
+    <button class="btn btn-outline-danger" type="submit">رفض الجرد</button>
 </form>
 {% endif %}
 {% endblock %}
@@ -15,6 +24,12 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-4 mb-4">
+        {% if stocktake.approved_signature or stocktake.rejected_signature %}
+        <div class="alert alert-secondary small">
+            {% if stocktake.approved_signature %}<div><strong>توقيع الاعتماد:</strong> {{ stocktake.approved_signature }}</div>{% endif %}
+            {% if stocktake.rejected_signature %}<div><strong>توقيع الرفض:</strong> {{ stocktake.rejected_signature }}</div>{% endif %}
+        </div>
+        {% endif %}
         <div class="card">
             <div class="card-header"><strong>إضافة صنف للجرد</strong></div>
             <div class="card-body">
@@ -27,7 +42,7 @@
                     <button class="btn btn-primary w-100" type="submit">حفظ البند</button>
                 </form>
                 {% else %}
-                <div class="alert alert-success mb-0">هذا الجرد معتمد ولا يمكن تعديله.</div>
+                <div class="alert alert-info mb-0">هذا الجرد ليس في حالة مسودة ولا يمكن تعديل بنوده.</div>
                 {% endif %}
             </div>
         </div>

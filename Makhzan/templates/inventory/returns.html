@@ -17,6 +17,10 @@
                     <div class="mb-3">{{ form.return_date.label(class="form-label") }}{{ form.return_date(class="form-control") }}</div>
                     <div class="mb-3">{{ form.condition.label(class="form-label") }}{{ form.condition(class="form-select") }}</div>
                     <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=3) }}</div>
+                    <div class="mb-3">
+                        <label class="form-label">كلمة مرور التوقيع الإلكتروني</label>
+                        <input type="password" name="signature_password" class="form-control" required>
+                    </div>
                     <button class="btn btn-primary w-100" type="submit">تسجيل المرتجع</button>
                 </form>
             </div>

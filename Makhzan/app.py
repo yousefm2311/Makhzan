@@ -4,8 +4,8 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 from collections import defaultdict, OrderedDict
 import os
-from models import db, User, Category, Product, Supplier, Branch, Customer, Purchase, PurchaseItem, Sale, SaleItem, Inventory, StorageLocation, InventoryTransaction, Setting, ReferenceProduct, ReferenceCategory, Employee, StockIssue, DamageRecord, StockIssueRequest, EmployeeReturn, Stocktake, StocktakeItem, AuditLog
-from forms import LoginForm, RegisterForm, CategoryForm, ProductForm, SupplierForm, CustomerForm, UserForm, SaleForm, CatalogImportForm, CategoryCatalogImportForm, BranchForm, StorageLocationForm, EmployeeForm, StockIssueForm, DamageRecordForm, StockIssueRequestForm, EmployeeReturnForm, StocktakeForm, StocktakeItemForm
+from models import db, User, Category, Product, Supplier, Branch, Customer, Purchase, PurchaseItem, Sale, SaleItem, Inventory, StorageLocation, ProductLocationStock, InventoryTransaction, Setting, ReferenceProduct, ReferenceCategory, Employee, StockIssue, DamageRecord, StockIssueRequest, EmployeeReturn, Stocktake, StocktakeItem, AuditLog
+from forms import LoginForm, RegisterForm, CategoryForm, ProductForm, SupplierForm, CustomerForm, UserForm, SaleForm, CatalogImportForm, CategoryCatalogImportForm, BranchForm, StorageLocationForm, ProductLocationStockForm, EmployeeForm, StockIssueForm, DamageRecordForm, StockIssueRequestForm, EmployeeReturnForm, StocktakeForm, StocktakeItemForm
 from sqlalchemy.orm import joinedload
 from functools import wraps
 from flask import redirect, url_for, flash
@@ -125,7 +125,41 @@ def generate_sequence(model, field_name, prefix):
     base = f'{prefix}{today}'
     field = getattr(model, field_name)
     count = model.query.filter(field.like(f'{base}%')).count() + 1
-    return f'{base}{count:04d}'
+    while True:
+        value = f'{base}{count:04d}'
+        if not model.query.filter(field == value).first():
+            return value
+        count += 1
+
+
+def populate_user_form_choices(form):
+    branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
+    form.branch_id.choices = [(0, 'كل الفروع')] + [(branch.id, f'{branch.name} ({branch.code})') for branch in branches]
+
+
+def scoped_branch_id():
+    if not current_user.is_authenticated:
+        return None
+    if current_user.role == 'admin':
+        return None
+    return getattr(current_user, 'branch_id', None)
+
+
+def can_access_branch(branch_id):
+    scope_id = scoped_branch_id()
+    return not scope_id or not branch_id or int(branch_id) == int(scope_id)
+
+
+def can_access_employee(employee):
+    return employee is not None and can_access_branch(employee.branch_id)
+
+
+def require_e_signature(action_label):
+    password = request.form.get('signature_password', '')
+    if not password or not current_user.check_password(password):
+        flash(f'كلمة مرور التوقيع الإلكتروني غير صحيحة لتنفيذ: {action_label}.', 'danger')
+        return None
+    return f'{current_user.username} | {current_user.role} | {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC | {request.remote_addr or ""}'
 
 
 def can_approve_requests():
@@ -162,6 +196,91 @@ def excel_response(filename, headers, rows, title=None):
         download_name=filename,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+
+def rtl_text(value):
+    text_value = '' if value is None else str(value)
+    try:
+        import arabic_reshaper
+        from bidi.algorithm import get_display
+        return get_display(arabic_reshaper.reshape(text_value))
+    except Exception:
+        return text_value
+
+
+def pdf_response(filename, title, headers, rows, subtitle='', summary=None, landscape_mode=True):
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+        from reportlab.lib.pagesizes import A4, landscape, portrait
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    except ImportError:
+        flash('تصدير PDF يحتاج مكتبة reportlab.', 'danger')
+        return redirect(request.referrer or url_for('reports'))
+
+    fonts_dir = os.path.join(os.environ.get('WINDIR', r'C:\Windows'), 'Fonts')
+    font_path = os.path.join(fonts_dir, 'arial.ttf')
+    bold_font_path = os.path.join(fonts_dir, 'arialbd.ttf')
+    try:
+        if 'ArabicReport' not in pdfmetrics.getRegisteredFontNames():
+            pdfmetrics.registerFont(TTFont('ArabicReport', font_path))
+        if 'ArabicReportBold' not in pdfmetrics.getRegisteredFontNames():
+            pdfmetrics.registerFont(TTFont('ArabicReportBold', bold_font_path))
+    except Exception:
+        pass
+
+    page_size = landscape(A4) if landscape_mode else portrait(A4)
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=page_size, rightMargin=8 * mm, leftMargin=8 * mm, topMargin=8 * mm, bottomMargin=8 * mm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('ArabicTitle', parent=styles['Title'], fontName='ArabicReportBold', fontSize=14, alignment=TA_CENTER, leading=18, spaceAfter=4)
+    subtitle_style = ParagraphStyle('ArabicSubtitle', parent=styles['Normal'], fontName='ArabicReport', fontSize=9, alignment=TA_CENTER, textColor=colors.HexColor('#5b6472'), leading=12)
+    cell_style = ParagraphStyle('ArabicCell', parent=styles['Normal'], fontName='ArabicReport', fontSize=7, alignment=TA_RIGHT, leading=9)
+    header_style = ParagraphStyle('ArabicHeader', parent=cell_style, fontName='ArabicReportBold', alignment=TA_CENTER, textColor=colors.white)
+
+    story = [
+        Paragraph(rtl_text(title), title_style),
+        Paragraph(rtl_text(subtitle or f'تاريخ التقرير: {datetime.now().strftime("%Y-%m-%d %H:%M")}'), subtitle_style),
+        Spacer(1, 5 * mm)
+    ]
+    if summary:
+        summary_data = [[Paragraph(rtl_text(label), header_style), Paragraph(rtl_text(value), cell_style)] for label, value in summary]
+        summary_table = Table(summary_data, colWidths=[35 * mm, 35 * mm])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#1f4e79')),
+            ('GRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#c9d3df')),
+            ('ROWBACKGROUNDS', (1, 0), (1, -1), [colors.white, colors.HexColor('#f7f9fb')]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 4 * mm))
+
+    table_data = [[Paragraph(rtl_text(h), header_style) for h in headers]]
+    for row in rows:
+        table_data.append([Paragraph(rtl_text(cell), cell_style) for cell in row])
+
+    usable_width = page_size[0] - doc.leftMargin - doc.rightMargin
+    col_width = usable_width / max(1, len(headers))
+    table = Table(table_data, colWidths=[col_width] * len(headers), repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4e79')),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#b8c2cc')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f4f7fa')]),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    story.append(table)
+    doc.build(story)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -237,10 +356,36 @@ def ensure_company_columns():
 
         try_add('employees', 'employee_code TEXT')
         try_add('employees', 'branch_id INTEGER')
+        try_add('users', 'branch_id INTEGER')
+        try_add('stock_issue_requests', 'approved_signature TEXT')
+        try_add('stock_issue_requests', 'executed_signature TEXT')
+        try_add('stock_issue_requests', 'rejected_signature TEXT')
+        try_add('employee_returns', 'signed_signature TEXT')
+        try_add('stocktakes', 'rejected_by_id INTEGER')
+        try_add('stocktakes', 'rejected_at DATETIME')
+        try_add('stocktakes', 'approved_signature TEXT')
+        try_add('stocktakes', 'rejected_signature TEXT')
+        try_add('stocktakes', 'rejection_reason TEXT')
 
         if added:
             conn.connection.commit()
         conn.close()
+
+
+def ensure_document_numbers():
+    with app.app_context():
+        changed = False
+        for item in StockIssueRequest.query.filter((StockIssueRequest.request_number == None) | (StockIssueRequest.request_number == '')).all():
+            item.request_number = generate_sequence(StockIssueRequest, 'request_number', 'REQ')
+            changed = True
+        for item in EmployeeReturn.query.filter((EmployeeReturn.return_number == None) | (EmployeeReturn.return_number == '')).all():
+            item.return_number = generate_sequence(EmployeeReturn, 'return_number', 'RET')
+            changed = True
+        for item in Stocktake.query.filter((Stocktake.count_number == None) | (Stocktake.count_number == '')).all():
+            item.count_number = generate_sequence(Stocktake, 'count_number', 'CNT')
+            changed = True
+        if changed:
+            commit_with_retry()
 
 
 def create_tables():
@@ -252,6 +397,7 @@ def create_tables():
                 ensure_due_columns()
                 ensure_reference_columns()
                 ensure_company_columns()
+                ensure_document_numbers()
                 # Create admin user if not exists
                 if not User.query.filter_by(username='admin').first():
                     admin = User(
@@ -1190,13 +1336,19 @@ def product_transactions(id):
 
 
 def populate_employee_form_choices(form):
-    branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
+    branches_query = Branch.query.filter_by(is_active=True)
+    if scoped_branch_id():
+        branches_query = branches_query.filter(Branch.id == scoped_branch_id())
+    branches = branches_query.order_by(Branch.name).all()
     form.branch_id.choices = [(0, 'بدون فرع')] + [(branch.id, f'{branch.name} ({branch.code})') for branch in branches]
 
 
 def populate_product_employee_choices(form):
     products = Product.query.order_by(Product.name).all()
-    employees_list = Employee.query.options(joinedload(Employee.branch)).filter_by(is_active=True).order_by(Employee.name).all()
+    employees_query = Employee.query.options(joinedload(Employee.branch)).filter_by(is_active=True)
+    if scoped_branch_id():
+        employees_query = employees_query.filter(Employee.branch_id == scoped_branch_id())
+    employees_list = employees_query.order_by(Employee.name).all()
     form.product_id.choices = [(p.id, p.name) for p in products]
     form.employee_id.choices = [
         (e.id, f'{e.employee_code or "-"} - {e.name} - {e.branch.name if e.branch else "بدون فرع"}')
@@ -1208,7 +1360,10 @@ def populate_product_employee_choices(form):
 @login_required
 @warehouse_required
 def branches():
-    branches = Branch.query.order_by(Branch.is_active.desc(), Branch.name).all()
+    branches_query = Branch.query
+    if scoped_branch_id():
+        branches_query = branches_query.filter(Branch.id == scoped_branch_id())
+    branches = branches_query.order_by(Branch.is_active.desc(), Branch.name).all()
     form = BranchForm()
     return render_template('branches/index.html', branches=branches, form=form)
 
@@ -1217,6 +1372,9 @@ def branches():
 @login_required
 @warehouse_required
 def add_branch():
+    if scoped_branch_id():
+        flash('ليس لديك صلاحية إنشاء فرع جديد خارج نطاقك.', 'danger')
+        return redirect(url_for('branches'))
     form = BranchForm()
     if form.validate_on_submit():
         code = (form.code.data or '').strip()
@@ -1243,6 +1401,9 @@ def add_branch():
 @warehouse_required
 def edit_branch(id):
     branch = Branch.query.get_or_404(id)
+    if not can_access_branch(branch.id):
+        flash('ليس لديك صلاحية تعديل هذا الفرع.', 'danger')
+        return redirect(url_for('branches'))
     form = BranchForm()
     if form.validate_on_submit():
         code = (form.code.data or '').strip()
@@ -1263,15 +1424,32 @@ def edit_branch(id):
 
 
 def populate_storage_location_choices(form):
-    branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
+    branches_query = Branch.query.filter_by(is_active=True)
+    if scoped_branch_id():
+        branches_query = branches_query.filter(Branch.id == scoped_branch_id())
+    branches = branches_query.order_by(Branch.name).all()
     form.branch_id.choices = [(0, 'بدون فرع')] + [(branch.id, f'{branch.name} ({branch.code})') for branch in branches]
+
+
+def populate_location_stock_choices(form):
+    form.product_id.choices = [(p.id, p.name) for p in Product.query.order_by(Product.name).all()]
+    locations_query = StorageLocation.query.options(joinedload(StorageLocation.branch)).filter_by(is_active=True)
+    if scoped_branch_id():
+        locations_query = locations_query.filter(StorageLocation.branch_id == scoped_branch_id())
+    form.location_id.choices = [
+        (loc.id, f'{loc.code} - {loc.name} - {loc.branch.name if loc.branch else "بدون فرع"}')
+        for loc in locations_query.order_by(StorageLocation.code).all()
+    ]
 
 
 @app.route('/storage-locations')
 @login_required
 @roles_required('admin', 'warehouse_manager')
 def storage_locations():
-    locations = StorageLocation.query.options(joinedload(StorageLocation.branch)).order_by(StorageLocation.is_active.desc(), StorageLocation.name).all()
+    locations_query = StorageLocation.query.options(joinedload(StorageLocation.branch))
+    if scoped_branch_id():
+        locations_query = locations_query.filter(StorageLocation.branch_id == scoped_branch_id())
+    locations = locations_query.order_by(StorageLocation.is_active.desc(), StorageLocation.name).all()
     form = StorageLocationForm()
     populate_storage_location_choices(form)
     return render_template('storage_locations/index.html', locations=locations, form=form)
@@ -1284,6 +1462,9 @@ def add_storage_location():
     form = StorageLocationForm()
     populate_storage_location_choices(form)
     if form.validate_on_submit():
+        if not can_access_branch(form.branch_id.data):
+            flash('ليس لديك صلاحية إضافة موقع تخزين لهذا الفرع.', 'danger')
+            return redirect(url_for('storage_locations'))
         code = (form.code.data or '').strip()
         if StorageLocation.query.filter(func.lower(StorageLocation.code) == code.lower()).first():
             flash('كود موقع التخزين موجود بالفعل.', 'danger')
@@ -1305,11 +1486,69 @@ def add_storage_location():
     return redirect(url_for('storage_locations'))
 
 
+@app.route('/storage-stocks', methods=['GET', 'POST'])
+@login_required
+@warehouse_required
+def storage_stocks():
+    form = ProductLocationStockForm()
+    populate_location_stock_choices(form)
+    if form.validate_on_submit():
+        location = StorageLocation.query.get(form.location_id.data)
+        if not can_access_branch(location.branch_id if location else None):
+            flash('ليس لديك صلاحية تعديل كميات هذا الموقع.', 'danger')
+            return redirect(url_for('storage_stocks'))
+        stock = ProductLocationStock.query.filter_by(product_id=form.product_id.data, location_id=form.location_id.data).first()
+        if not stock:
+            stock = ProductLocationStock(product_id=form.product_id.data, location_id=form.location_id.data, quantity=0)
+            db.session.add(stock)
+            db.session.flush()
+        old_location_qty = stock.quantity
+        new_location_qty = form.quantity.data
+        delta = new_location_qty - old_location_qty
+        stock.quantity = new_location_qty
+        stock.notes = form.notes.data
+
+        inventory = Inventory.query.filter_by(product_id=form.product_id.data).first()
+        if not inventory:
+            inventory = Inventory(product_id=form.product_id.data, quantity=0)
+            db.session.add(inventory)
+            db.session.flush()
+        before = inventory.quantity
+        inventory.quantity += delta
+        db.session.add(InventoryTransaction(
+            product_id=form.product_id.data,
+            quantity_before=before,
+            quantity_change=delta,
+            quantity_after=inventory.quantity,
+            transaction_type='location_stock_adjustment',
+            reference_type='storage_location',
+            reference_id=form.location_id.data,
+            notes=f'تعديل كمية موقع تخزين من {old_location_qty} إلى {new_location_qty}',
+            user_id=current_user.id
+        ))
+        audit_log('update_location_stock', 'ProductLocationStock', stock.id, f'تعديل كمية موقع تخزين بفارق {delta}')
+        commit_with_retry()
+        flash('تم تحديث كمية الصنف داخل موقع التخزين وتحديث إجمالي المخزون.', 'success')
+        return redirect(url_for('storage_stocks'))
+
+    stocks_query = ProductLocationStock.query.options(
+        joinedload(ProductLocationStock.product),
+        joinedload(ProductLocationStock.location).joinedload(StorageLocation.branch)
+    ).join(StorageLocation, ProductLocationStock.location_id == StorageLocation.id)
+    if scoped_branch_id():
+        stocks_query = stocks_query.filter(StorageLocation.branch_id == scoped_branch_id())
+    stocks_page = stocks_query.order_by(ProductLocationStock.updated_at.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=50, error_out=False)
+    return render_template('storage_locations/stocks.html', form=form, stocks_page=stocks_page)
+
+
 @app.route('/employees')
 @login_required
 @warehouse_required
 def employees():
-    employees = Employee.query.options(joinedload(Employee.branch)).order_by(Employee.is_active.desc(), Employee.name).all()
+    employees_query = Employee.query.options(joinedload(Employee.branch))
+    if scoped_branch_id():
+        employees_query = employees_query.filter(Employee.branch_id == scoped_branch_id())
+    employees = employees_query.order_by(Employee.is_active.desc(), Employee.name).all()
     form = EmployeeForm()
     populate_employee_form_choices(form)
     return render_template('employees/index.html', employees=employees, form=form)
@@ -1322,6 +1561,9 @@ def add_employee():
     form = EmployeeForm()
     populate_employee_form_choices(form)
     if form.validate_on_submit():
+        if not can_access_branch(form.branch_id.data):
+            flash('ليس لديك صلاحية إضافة موظف لهذا الفرع.', 'danger')
+            return redirect(url_for('employees'))
         employee_code = (form.employee_code.data or '').strip()
         if Employee.query.filter(func.lower(Employee.employee_code) == employee_code.lower()).first():
             flash('كود الموظف موجود بالفعل.', 'danger')
@@ -1350,9 +1592,15 @@ def add_employee():
 @warehouse_required
 def edit_employee(id):
     employee = Employee.query.get_or_404(id)
+    if not can_access_employee(employee):
+        flash('ليس لديك صلاحية تعديل هذا الموظف.', 'danger')
+        return redirect(url_for('employees'))
     form = EmployeeForm()
     populate_employee_form_choices(form)
     if form.validate_on_submit():
+        if not can_access_branch(form.branch_id.data):
+            flash('ليس لديك صلاحية نقل الموظف لهذا الفرع.', 'danger')
+            return redirect(url_for('employees'))
         employee_code = (form.employee_code.data or '').strip()
         duplicate = Employee.query.filter(func.lower(Employee.employee_code) == employee_code.lower(), Employee.id != id).first()
         if duplicate:
@@ -1380,10 +1628,11 @@ def edit_employee(id):
 def stock_issue():
     form = StockIssueForm()
     products = Product.query.order_by(Product.name).all()
-    employees_list = Employee.query.options(joinedload(Employee.branch)).filter_by(is_active=True).order_by(Employee.name).all()
+    employees_query = Employee.query.options(joinedload(Employee.branch)).filter_by(is_active=True)
+    if scoped_branch_id():
+        employees_query = employees_query.filter(Employee.branch_id == scoped_branch_id())
+    employees_list = employees_query.order_by(Employee.name).all()
     form.product_id.choices = [(p.id, p.name) for p in products]
-    form.employee_id.choices = [(e.id, f'{e.name} - {e.department or "بدون قسم"}') for e in employees_list]
-
     form.employee_id.choices = [
         (e.id, f'{e.employee_code or "-"} - {e.name} - {e.branch.name if e.branch else "بدون فرع"}')
         for e in employees_list
@@ -1398,6 +1647,9 @@ def stock_issue():
     if form.validate_on_submit():
         inventory = Inventory.query.filter_by(product_id=form.product_id.data).first()
         employee = Employee.query.get(form.employee_id.data)
+        if not can_access_employee(employee):
+            flash('ليس لديك صلاحية صرف عهدة لهذا الموظف أو الفرع.', 'danger')
+            return render_template('inventory/issue.html', form=form, recent_issues=recent_issues)
         if not inventory or inventory.quantity < form.quantity.data:
             flash('الكمية المطلوبة غير متاحة في المخزون.', 'danger')
             return render_template('inventory/issue.html', form=form, recent_issues=recent_issues)
@@ -1490,6 +1742,10 @@ def issue_requests():
     form = StockIssueRequestForm()
     populate_product_employee_choices(form)
     if form.validate_on_submit():
+        employee = Employee.query.get(form.employee_id.data)
+        if not can_access_employee(employee):
+            flash('ليس لديك صلاحية إنشاء طلب صرف لهذا الموظف أو الفرع.', 'danger')
+            return redirect(url_for('issue_requests'))
         request_number = generate_sequence(StockIssueRequest, 'request_number', 'REQ')
         issue_request = StockIssueRequest(
             request_number=request_number,
@@ -1516,7 +1772,9 @@ def issue_requests():
     )
     if status != 'all':
         query = query.filter_by(status=status)
-    if current_user.role not in ('admin', 'approver', 'warehouse_manager', 'auditor'):
+    if scoped_branch_id():
+        query = query.join(Employee, StockIssueRequest.employee_id == Employee.id).filter(Employee.branch_id == scoped_branch_id())
+    elif current_user.role not in ('admin', 'approver', 'warehouse_manager', 'auditor'):
         query = query.filter_by(requested_by_id=current_user.id)
     requests_page = query.order_by(StockIssueRequest.requested_at.desc()).paginate(
         page=request.args.get('page', 1, type=int),
@@ -1531,12 +1789,19 @@ def issue_requests():
 @roles_required('admin', 'approver', 'warehouse_manager')
 def approve_issue_request(id):
     issue_request = StockIssueRequest.query.get_or_404(id)
+    if not can_access_employee(issue_request.employee):
+        flash('ليس لديك صلاحية اعتماد طلب خارج نطاق فرعك.', 'danger')
+        return redirect(url_for('issue_requests'))
     if issue_request.status != 'pending':
         flash('لا يمكن اعتماد طلب ليس في حالة انتظار.', 'warning')
+        return redirect(url_for('issue_requests'))
+    signature = require_e_signature('اعتماد طلب صرف')
+    if not signature:
         return redirect(url_for('issue_requests'))
     issue_request.status = 'approved'
     issue_request.approved_by_id = current_user.id
     issue_request.approved_at = datetime.utcnow()
+    issue_request.approved_signature = signature
     audit_log('approve_issue_request', 'StockIssueRequest', id, issue_request.request_number)
     commit_with_retry()
     flash('تم اعتماد طلب الصرف.', 'success')
@@ -1548,12 +1813,19 @@ def approve_issue_request(id):
 @roles_required('admin', 'approver', 'warehouse_manager')
 def reject_issue_request(id):
     issue_request = StockIssueRequest.query.get_or_404(id)
+    if not can_access_employee(issue_request.employee):
+        flash('ليس لديك صلاحية رفض طلب خارج نطاق فرعك.', 'danger')
+        return redirect(url_for('issue_requests'))
     if issue_request.status not in ('pending', 'approved'):
         flash('لا يمكن رفض هذا الطلب.', 'warning')
+        return redirect(url_for('issue_requests'))
+    signature = require_e_signature('رفض طلب صرف')
+    if not signature:
         return redirect(url_for('issue_requests'))
     issue_request.status = 'rejected'
     issue_request.rejected_by_id = current_user.id
     issue_request.rejected_at = datetime.utcnow()
+    issue_request.rejected_signature = signature
     issue_request.rejection_reason = request.form.get('rejection_reason')
     audit_log('reject_issue_request', 'StockIssueRequest', id, issue_request.request_number)
     commit_with_retry()
@@ -1566,9 +1838,15 @@ def reject_issue_request(id):
 @roles_required('admin', 'warehouse_manager')
 def execute_issue_request(id):
     issue_request = StockIssueRequest.query.options(joinedload(StockIssueRequest.employee)).get_or_404(id)
+    if not can_access_employee(issue_request.employee):
+        flash('ليس لديك صلاحية تنفيذ طلب خارج نطاق فرعك.', 'danger')
+        return redirect(url_for('issue_requests'))
     if issue_request.status != 'approved':
         flash('لا يمكن تنفيذ طلب غير معتمد.', 'warning')
         return redirect(url_for('issue_requests'))
+    signature = require_e_signature('تنفيذ طلب صرف')
+    if not signature:
+        return redirect(url_for('issue_requests', status='approved'))
     inventory = Inventory.query.filter_by(product_id=issue_request.product_id).first()
     if not inventory or inventory.quantity < issue_request.quantity:
         flash('الكمية غير متاحة في المخزون.', 'danger')
@@ -1601,6 +1879,7 @@ def execute_issue_request(id):
     issue_request.status = 'executed'
     issue_request.executed_by_id = current_user.id
     issue_request.executed_at = datetime.utcnow()
+    issue_request.executed_signature = signature
     issue_request.stock_issue_id = issue.id
     audit_log('execute_issue_request', 'StockIssueRequest', id, issue_request.request_number)
     commit_with_retry()
@@ -1615,6 +1894,13 @@ def employee_returns():
     form = EmployeeReturnForm()
     populate_product_employee_choices(form)
     if form.validate_on_submit():
+        employee = Employee.query.get(form.employee_id.data)
+        if not can_access_employee(employee):
+            flash('ليس لديك صلاحية تسجيل مرتجع لهذا الموظف أو الفرع.', 'danger')
+            return redirect(url_for('employee_returns'))
+        signature = require_e_signature('تسجيل مرتجع عهدة')
+        if not signature:
+            return redirect(url_for('employee_returns'))
         inventory = Inventory.query.filter_by(product_id=form.product_id.data).first()
         if not inventory:
             inventory = Inventory(product_id=form.product_id.data, quantity=0)
@@ -1625,8 +1911,6 @@ def employee_returns():
             inventory.quantity += form.quantity.data
             after = inventory.quantity
             transaction_type = 'employee_return'
-        elif user and not user.is_active:
-            flash('هذا المستخدم غير نشط. راجع مدير النظام.', 'danger')
         else:
             after = inventory.quantity
             transaction_type = 'employee_return_review'
@@ -1638,7 +1922,8 @@ def employee_returns():
             return_date=form.return_date.data,
             condition=form.condition.data,
             notes=form.notes.data,
-            user_id=current_user.id
+            user_id=current_user.id,
+            signed_signature=signature
         )
         db.session.add(return_record)
         db.session.add(InventoryTransaction(
@@ -1655,7 +1940,10 @@ def employee_returns():
         commit_with_retry()
         flash('تم تسجيل مرتجع العهدة.', 'success')
         return redirect(url_for('employee_returns'))
-    returns_page = EmployeeReturn.query.options(joinedload(EmployeeReturn.product), joinedload(EmployeeReturn.employee).joinedload(Employee.branch), joinedload(EmployeeReturn.user)).order_by(EmployeeReturn.created_at.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=25, error_out=False)
+    returns_query = EmployeeReturn.query.options(joinedload(EmployeeReturn.product), joinedload(EmployeeReturn.employee).joinedload(Employee.branch), joinedload(EmployeeReturn.user)).join(Employee, EmployeeReturn.employee_id == Employee.id)
+    if scoped_branch_id():
+        returns_query = returns_query.filter(Employee.branch_id == scoped_branch_id())
+    returns_page = returns_query.order_by(EmployeeReturn.created_at.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=25, error_out=False)
     return render_template('inventory/returns.html', form=form, returns_page=returns_page)
 
 
@@ -1667,6 +1955,9 @@ def stocktakes():
     branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
     form.branch_id.choices = [(0, 'بدون فرع / كل الفروع')] + [(branch.id, f'{branch.name} ({branch.code})') for branch in branches]
     if form.validate_on_submit():
+        if scoped_branch_id() and form.branch_id.data != scoped_branch_id():
+            flash('ليس لديك صلاحية إنشاء جرد خارج نطاق فرعك.', 'danger')
+            return redirect(url_for('stocktakes'))
         stocktake = Stocktake(
             count_number=generate_sequence(Stocktake, 'count_number', 'CNT'),
             branch_id=form.branch_id.data if form.branch_id.data else None,
@@ -1679,7 +1970,10 @@ def stocktakes():
         commit_with_retry()
         flash('تم إنشاء جرد جديد. أضف الأصناف والكمية الفعلية.', 'success')
         return redirect(url_for('view_stocktake', id=stocktake.id))
-    stocktakes_page = Stocktake.query.options(joinedload(Stocktake.branch), joinedload(Stocktake.created_by)).order_by(Stocktake.created_at.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=25, error_out=False)
+    stocktakes_query = Stocktake.query.options(joinedload(Stocktake.branch), joinedload(Stocktake.created_by))
+    if scoped_branch_id():
+        stocktakes_query = stocktakes_query.filter(Stocktake.branch_id == scoped_branch_id())
+    stocktakes_page = stocktakes_query.order_by(Stocktake.created_at.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=25, error_out=False)
     return render_template('inventory/stocktakes.html', form=form, stocktakes_page=stocktakes_page)
 
 
@@ -1688,6 +1982,9 @@ def stocktakes():
 @roles_required('admin', 'warehouse_manager', 'auditor')
 def view_stocktake(id):
     stocktake = Stocktake.query.options(joinedload(Stocktake.items).joinedload(StocktakeItem.product)).get_or_404(id)
+    if not can_access_branch(stocktake.branch_id):
+        flash('ليس لديك صلاحية فتح جرد خارج نطاق فرعك.', 'danger')
+        return redirect(url_for('stocktakes'))
     form = StocktakeItemForm()
     products = Product.query.order_by(Product.name).all()
     form.product_id.choices = [(p.id, p.name) for p in products]
@@ -1717,13 +2014,65 @@ def view_stocktake(id):
     return render_template('inventory/stocktake_view.html', stocktake=stocktake, form=form)
 
 
+@app.route('/inventory/stocktakes/<int:id>/submit', methods=['POST'])
+@login_required
+@roles_required('admin', 'warehouse_manager', 'auditor')
+def submit_stocktake(id):
+    stocktake = Stocktake.query.get_or_404(id)
+    if not can_access_branch(stocktake.branch_id):
+        flash('ليس لديك صلاحية إرسال هذا الجرد للاعتماد.', 'danger')
+        return redirect(url_for('stocktakes'))
+    if stocktake.status != 'draft':
+        flash('لا يمكن إرسال هذا الجرد للاعتماد.', 'warning')
+        return redirect(url_for('view_stocktake', id=id))
+    if not stocktake.items:
+        flash('أضف بنود الجرد قبل الإرسال للاعتماد.', 'warning')
+        return redirect(url_for('view_stocktake', id=id))
+    stocktake.status = 'submitted'
+    audit_log('submit_stocktake', 'Stocktake', stocktake.id, stocktake.count_number)
+    commit_with_retry()
+    flash('تم إرسال الجرد للاعتماد.', 'success')
+    return redirect(url_for('view_stocktake', id=id))
+
+
+@app.route('/inventory/stocktakes/<int:id>/reject', methods=['POST'])
+@login_required
+@roles_required('admin', 'warehouse_manager')
+def reject_stocktake(id):
+    stocktake = Stocktake.query.get_or_404(id)
+    if not can_access_branch(stocktake.branch_id):
+        flash('ليس لديك صلاحية رفض جرد خارج نطاق فرعك.', 'danger')
+        return redirect(url_for('stocktakes'))
+    if stocktake.status != 'submitted':
+        flash('لا يمكن رفض جرد غير مرسل للاعتماد.', 'warning')
+        return redirect(url_for('view_stocktake', id=id))
+    signature = require_e_signature('رفض جرد')
+    if not signature:
+        return redirect(url_for('view_stocktake', id=id))
+    stocktake.status = 'rejected'
+    stocktake.rejected_by_id = current_user.id
+    stocktake.rejected_at = datetime.utcnow()
+    stocktake.rejected_signature = signature
+    stocktake.rejection_reason = request.form.get('rejection_reason')
+    audit_log('reject_stocktake', 'Stocktake', stocktake.id, stocktake.count_number)
+    commit_with_retry()
+    flash('تم رفض الجرد. يمكن نسخه أو إنشاء جرد جديد بعد المراجعة.', 'success')
+    return redirect(url_for('view_stocktake', id=id))
+
+
 @app.route('/inventory/stocktakes/<int:id>/approve', methods=['POST'])
 @login_required
 @roles_required('admin', 'warehouse_manager')
 def approve_stocktake(id):
     stocktake = Stocktake.query.options(joinedload(Stocktake.items)).get_or_404(id)
-    if stocktake.status != 'draft':
-        flash('الجرد معتمد أو مغلق بالفعل.', 'warning')
+    if not can_access_branch(stocktake.branch_id):
+        flash('ليس لديك صلاحية اعتماد جرد خارج نطاق فرعك.', 'danger')
+        return redirect(url_for('stocktakes'))
+    if stocktake.status != 'submitted':
+        flash('لا يمكن اعتماد الجرد إلا بعد إرساله للاعتماد.', 'warning')
+        return redirect(url_for('view_stocktake', id=id))
+    signature = require_e_signature('اعتماد وتسوية جرد')
+    if not signature:
         return redirect(url_for('view_stocktake', id=id))
     for item in stocktake.items:
         if item.variance == 0:
@@ -1749,6 +2098,7 @@ def approve_stocktake(id):
     stocktake.status = 'approved'
     stocktake.approved_by_id = current_user.id
     stocktake.approved_at = datetime.utcnow()
+    stocktake.approved_signature = signature
     audit_log('approve_stocktake', 'Stocktake', stocktake.id, stocktake.count_number)
     commit_with_retry()
     flash('تم اعتماد الجرد وتسوية فروقات المخزون.', 'success')
@@ -1760,7 +2110,10 @@ def approve_stocktake(id):
 @report_required
 def reports():
     categories = Category.query.order_by(Category.name).all()
-    branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
+    branches_query = Branch.query.filter_by(is_active=True)
+    if scoped_branch_id():
+        branches_query = branches_query.filter(Branch.id == scoped_branch_id())
+    branches = branches_query.order_by(Branch.name).all()
     return render_template('reports/index.html', categories=categories, branches=branches)
 
 @app.route('/reports/sales')
@@ -1932,7 +2285,10 @@ def issues_report():
         joinedload(StockIssue.employee).joinedload(Employee.branch),
         joinedload(StockIssue.user)
     ).join(Employee, StockIssue.employee_id == Employee.id).filter(StockIssue.issue_date.between(start_date, end_date))
-    if branch_id:
+    if scoped_branch_id():
+        branch_id = scoped_branch_id()
+        query = query.filter(Employee.branch_id == branch_id)
+    elif branch_id:
         query = query.filter(Employee.branch_id == branch_id)
     issues = query.order_by(StockIssue.issue_date.desc(), StockIssue.id.desc()).all()
     total_quantity = sum(issue.quantity for issue in issues)
@@ -1947,7 +2303,10 @@ def issues_report():
         by_employee[employee_label] += issue.quantity
         by_product[product_label] += issue.quantity
         by_branch[branch_label] += issue.quantity
-    branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
+    branches_query = Branch.query.filter_by(is_active=True)
+    if scoped_branch_id():
+        branches_query = branches_query.filter(Branch.id == scoped_branch_id())
+    branches = branches_query.order_by(Branch.name).all()
     return render_template(
         'reports/issues_report.html',
         issues=issues,
@@ -2018,6 +2377,28 @@ def export_inventory_excel():
     )
 
 
+@app.route('/reports/inventory/export.pdf')
+@login_required
+@roles_required('admin', 'warehouse_manager', 'auditor')
+def export_inventory_pdf():
+    items = db.session.query(Product, Inventory).join(Inventory, Product.id == Inventory.product_id).order_by(Product.name).all()
+    rows = []
+    total_qty = 0
+    total_value = 0
+    for product, item in items:
+        value = item.quantity * (product.purchase_price or 0)
+        total_qty += item.quantity
+        total_value += value
+        rows.append([product.name, product.sku or '', product.barcode or '', product.category.name if product.category else '', item.quantity, product.min_quantity, f'{product.purchase_price or 0:.2f}', f'{value:.2f}'])
+    return pdf_response(
+        'inventory_report.pdf',
+        'تقرير المخزون',
+        ['الصنف', 'SKU', 'الباركود', 'التصنيف', 'الكمية', 'الحد الأدنى', 'سعر الشراء', 'القيمة'],
+        rows,
+        summary=[('عدد الأصناف', len(rows)), ('إجمالي الكمية', total_qty), ('قيمة المخزون', f'{total_value:.2f}')]
+    )
+
+
 @app.route('/reports/issues/export.xlsx')
 @login_required
 @roles_required('admin', 'warehouse_manager', 'auditor')
@@ -2026,7 +2407,10 @@ def export_issues_excel():
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
     start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
     end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-    issues = StockIssue.query.options(joinedload(StockIssue.product), joinedload(StockIssue.employee).joinedload(Employee.branch), joinedload(StockIssue.user)).filter(StockIssue.issue_date.between(start_date, end_date)).order_by(StockIssue.issue_date.desc()).all()
+    issues_query = StockIssue.query.options(joinedload(StockIssue.product), joinedload(StockIssue.employee).joinedload(Employee.branch), joinedload(StockIssue.user)).join(Employee, StockIssue.employee_id == Employee.id).filter(StockIssue.issue_date.between(start_date, end_date))
+    if scoped_branch_id():
+        issues_query = issues_query.filter(Employee.branch_id == scoped_branch_id())
+    issues = issues_query.order_by(StockIssue.issue_date.desc()).all()
     rows = []
     for issue in issues:
         rows.append([
@@ -2046,6 +2430,36 @@ def export_issues_excel():
         ['التاريخ', 'الصنف', 'كود الموظف', 'الموظف', 'الفرع', 'الكمية', 'سعر الوحدة', 'القيمة', 'الغرض', 'المسجل'],
         rows,
         'تقرير الصرف الداخلي'
+    )
+
+
+@app.route('/reports/issues/export.pdf')
+@login_required
+@roles_required('admin', 'warehouse_manager', 'auditor')
+def export_issues_pdf():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+    issues_query = StockIssue.query.options(joinedload(StockIssue.product), joinedload(StockIssue.employee).joinedload(Employee.branch), joinedload(StockIssue.user)).join(Employee, StockIssue.employee_id == Employee.id).filter(StockIssue.issue_date.between(start_date_obj, end_date_obj))
+    if scoped_branch_id():
+        issues_query = issues_query.filter(Employee.branch_id == scoped_branch_id())
+    issues = issues_query.order_by(StockIssue.issue_date.desc()).all()
+    rows = []
+    total_qty = 0
+    total_value = 0
+    for issue in issues:
+        value = issue.quantity * (issue.product.purchase_price or 0) if issue.product else 0
+        total_qty += issue.quantity
+        total_value += value
+        rows.append([issue.issue_date.strftime('%Y-%m-%d'), issue.product.name if issue.product else '', issue.employee.employee_code if issue.employee else '', issue.employee.name if issue.employee else '', issue.employee.branch.name if issue.employee and issue.employee.branch else '', issue.quantity, f'{value:.2f}', issue.purpose or ''])
+    return pdf_response(
+        'issues_report.pdf',
+        'تقرير الصرف الداخلي',
+        ['التاريخ', 'الصنف', 'كود الموظف', 'الموظف', 'الفرع', 'الكمية', 'القيمة', 'الغرض'],
+        rows,
+        subtitle=f'الفترة من {start_date} إلى {end_date}',
+        summary=[('عدد العمليات', len(rows)), ('إجمالي الكمية', total_qty), ('القيمة التقديرية', f'{total_value:.2f}')]
     )
 
 
@@ -2077,6 +2491,33 @@ def export_damage_excel():
         rows,
         'تقرير الهالك'
     )
+
+@app.route('/reports/damage/export.pdf')
+@login_required
+@roles_required('admin', 'warehouse_manager', 'auditor')
+def export_damage_pdf():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+    records = DamageRecord.query.options(joinedload(DamageRecord.product), joinedload(DamageRecord.user)).filter(DamageRecord.damage_date.between(start_date_obj, end_date_obj)).order_by(DamageRecord.damage_date.desc()).all()
+    rows = []
+    total_qty = 0
+    total_value = 0
+    for record in records:
+        value = record.quantity * (record.product.purchase_price or 0) if record.product else 0
+        total_qty += record.quantity
+        total_value += value
+        rows.append([record.damage_date.strftime('%Y-%m-%d'), record.product.name if record.product else '', record.quantity, f'{value:.2f}', record.reason or '', record.responsibility or '', record.user.username if record.user else ''])
+    return pdf_response(
+        'damage_report.pdf',
+        'تقرير الهالك',
+        ['التاريخ', 'الصنف', 'الكمية', 'القيمة', 'السبب', 'المسؤولية', 'المسجل'],
+        rows,
+        subtitle=f'الفترة من {start_date} إلى {end_date}',
+        summary=[('عدد السجلات', len(rows)), ('إجمالي الكمية', total_qty), ('قيمة الهالك', f'{total_value:.2f}')]
+    )
+
 
 @app.route('/reports/top-selling', methods=['GET'])
 @login_required
@@ -2234,7 +2675,7 @@ def users():
         flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
         return redirect(url_for('index'))
     
-    users = User.query.all()
+    users = User.query.options(joinedload(User.branch)).order_by(User.created_at.desc()).all()
     return render_template('users/index.html', users=users)
 
 @app.route('/users/add', methods=['GET', 'POST'])
@@ -2245,6 +2686,7 @@ def add_user():
         flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
         return redirect(url_for('index'))
     form = UserForm()
+    populate_user_form_choices(form)
     if form.validate_on_submit():
         if User.query.filter_by(email=form.email.data).first():
             flash('البريد الإلكتروني مستخدم بالفعل من قبل مستخدم آخر.', 'danger')
@@ -2256,6 +2698,7 @@ def add_user():
             username=form.username.data,
             email=form.email.data,
             role=form.role.data,
+            branch_id=form.branch_id.data if form.branch_id.data else None,
             is_active=form.is_active.data if hasattr(form, 'is_active') else True
         )
         if not form.password.data:
@@ -2286,12 +2729,14 @@ def edit_user(id):
         return redirect(url_for('index'))
     user = User.query.get_or_404(id)
     form = UserForm(obj=user)
+    populate_user_form_choices(form)
     if form.validate_on_submit():
         user.username = form.username.data
         user.email = form.email.data
         # فقط الأدمن يمكنه تغيير الصلاحية
         if current_user.role == 'admin':
             user.role = form.role.data
+            user.branch_id = form.branch_id.data if form.branch_id.data else None
         user.is_active = form.is_active.data
         if form.password.data:
             user.set_password(form.password.data)
