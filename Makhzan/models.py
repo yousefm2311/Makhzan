@@ -15,6 +15,7 @@ class User(db.Model, UserMixin):
     full_name = db.Column(db.String(100), nullable=True)
     role = db.Column(db.String(30), default='user')
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    custom_permissions = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

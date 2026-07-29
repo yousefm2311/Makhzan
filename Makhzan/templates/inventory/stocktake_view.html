@@ -5,11 +5,11 @@
 
 {% block header_buttons %}
 <a href="{{ url_for('stocktakes') }}" class="btn btn-outline-secondary">رجوع</a>
-{% if stocktake.status == 'draft' %}
+{% if stocktake.status == 'draft' and can('stocktakes.manage') %}
 <form method="POST" action="{{ url_for('submit_stocktake', id=stocktake.id) }}" class="d-inline">
     <button class="btn btn-primary" type="submit">إرسال للاعتماد</button>
 </form>
-{% elif stocktake.status == 'submitted' and current_user.role in ['admin', 'warehouse_manager'] %}
+{% elif stocktake.status == 'submitted' and can('stocktakes.approve') %}
 <form method="POST" action="{{ url_for('approve_stocktake', id=stocktake.id) }}" class="d-inline">
     <input type="password" name="signature_password" class="form-control form-control-sm d-inline-block w-auto" placeholder="كلمة المرور" required>
     <button class="btn btn-success" type="submit">اعتماد وتسوية الفروقات</button>
@@ -33,7 +33,7 @@
         <div class="card">
             <div class="card-header"><strong>إضافة صنف للجرد</strong></div>
             <div class="card-body">
-                {% if stocktake.status == 'draft' %}
+                {% if stocktake.status == 'draft' and can('stocktakes.manage') %}
                 <form method="POST">
                     {{ form.hidden_tag() }}
                     <div class="mb-3">{{ form.product_id.label(class="form-label") }}{{ form.product_id(class="form-select") }}</div>

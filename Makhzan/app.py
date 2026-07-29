@@ -19,16 +19,194 @@ from io import BytesIO
 from email.mime.text import MIMEText
 from sqlalchemy import text, func
 from sqlalchemy.exc import OperationalError
+import json
 
 PRIVILEGED_ROLES = ('admin', 'warehouse_manager')
 APPROVAL_ROLES = ('admin', 'approver', 'warehouse_manager')
 AUDIT_ROLES = ('admin', 'auditor', 'warehouse_manager')
 
+PERMISSION_GROUPS = OrderedDict([
+    ('الصفحات الرئيسية', [
+        ('dashboard.view', 'عرض لوحة المتابعة'),
+        ('products.view', 'عرض الأصناف'),
+        ('products.manage', 'إضافة/تعديل/حذف الأصناف'),
+        ('categories.view', 'عرض التصنيفات'),
+        ('categories.manage', 'إضافة/تعديل/حذف التصنيفات'),
+        ('suppliers.view', 'عرض الموردين'),
+        ('suppliers.manage', 'إضافة/تعديل/حذف الموردين'),
+        ('purchases.view', 'عرض التوريدات'),
+        ('purchases.manage', 'إضافة واستلام التوريدات'),
+        ('inventory.view', 'عرض المخزون والحركات'),
+        ('inventory.adjust', 'تعديل المخزون'),
+    ]),
+    ('الفروع والعهد', [
+        ('branches.view', 'عرض الفروع'),
+        ('branches.manage', 'إضافة/تعديل الفروع'),
+        ('employees.view', 'عرض الموظفين'),
+        ('employees.manage', 'إضافة/تعديل الموظفين'),
+        ('locations.view', 'عرض مواقع التخزين'),
+        ('locations.manage', 'إضافة مواقع التخزين'),
+        ('location_stock.manage', 'تعديل كميات مواقع التخزين'),
+        ('issue_requests.view', 'عرض طلبات الصرف'),
+        ('issue_requests.create', 'إنشاء طلب صرف'),
+        ('issue_requests.approve', 'اعتماد/رفض طلبات الصرف'),
+        ('issue_requests.execute', 'تنفيذ طلبات الصرف'),
+        ('stock_issue.direct', 'صرف عهدة مباشر'),
+        ('returns.manage', 'تسجيل مرتجع عهدة'),
+        ('damage.manage', 'تسجيل الهالك'),
+        ('stocktakes.view', 'عرض الجرد'),
+        ('stocktakes.manage', 'إنشاء وإدخال الجرد'),
+        ('stocktakes.approve', 'اعتماد/رفض الجرد'),
+    ]),
+    ('التقارير والإدارة', [
+        ('reports.view', 'عرض التقارير'),
+        ('reports.export', 'تصدير التقارير Excel/PDF'),
+        ('activity.view', 'عرض سجل النشاط'),
+        ('audit.view', 'عرض سجل التدقيق'),
+        ('users.manage', 'إدارة المستخدمين والصلاحيات'),
+        ('settings.manage', 'الإعدادات واستيراد الكتالوجات'),
+    ]),
+])
+
+ALL_PERMISSION_CODES = tuple(code for items in PERMISSION_GROUPS.values() for code, _ in items)
+
+ROLE_DEFAULT_PERMISSIONS = {
+    'admin': set(ALL_PERMISSION_CODES),
+    'warehouse_manager': {
+        'dashboard.view', 'products.view', 'products.manage', 'categories.view', 'categories.manage',
+        'suppliers.view', 'suppliers.manage', 'purchases.view', 'purchases.manage',
+        'inventory.view', 'inventory.adjust', 'branches.view', 'branches.manage',
+        'employees.view', 'employees.manage', 'locations.view', 'locations.manage',
+        'location_stock.manage', 'issue_requests.view', 'issue_requests.create',
+        'issue_requests.approve', 'issue_requests.execute', 'stock_issue.direct',
+        'returns.manage', 'damage.manage', 'stocktakes.view', 'stocktakes.manage',
+        'stocktakes.approve', 'reports.view', 'reports.export', 'activity.view', 'audit.view',
+    },
+    'approver': {'dashboard.view', 'issue_requests.view', 'issue_requests.approve'},
+    'auditor': {'dashboard.view', 'inventory.view', 'issue_requests.view', 'stocktakes.view', 'stocktakes.manage', 'reports.view', 'reports.export', 'activity.view', 'audit.view'},
+    'requester': {'dashboard.view', 'products.view', 'inventory.view', 'issue_requests.view', 'issue_requests.create'},
+    'user': {'dashboard.view', 'products.view', 'inventory.view', 'issue_requests.view', 'issue_requests.create'},
+    'cashier': {'dashboard.view'},
+}
+
+ENDPOINT_PERMISSIONS = {
+    'index': 'dashboard.view',
+    'dashboard': 'dashboard.view',
+    'products': 'products.view',
+    'add_product': 'products.manage',
+    'edit_product': 'products.manage',
+    'delete_product': 'products.manage',
+    'categories': 'categories.view',
+    'add_category': 'categories.manage',
+    'edit_category': 'categories.manage',
+    'delete_category': 'categories.manage',
+    'suppliers': 'suppliers.view',
+    'add_supplier': 'suppliers.manage',
+    'edit_supplier': 'suppliers.manage',
+    'delete_supplier': 'suppliers.manage',
+    'purchases': 'purchases.view',
+    'add_purchase': 'purchases.manage',
+    'receive_purchase': 'purchases.manage',
+    'purchases_due': 'purchases.manage',
+    'notify_due_purchase': 'purchases.manage',
+    'mark_purchase_paid': 'purchases.manage',
+    'inventory': 'inventory.view',
+    'inventory_adjustment': 'inventory.adjust',
+    'product_transactions': 'inventory.view',
+    'branches': 'branches.view',
+    'add_branch': 'branches.manage',
+    'edit_branch': 'branches.manage',
+    'employees': 'employees.view',
+    'add_employee': 'employees.manage',
+    'edit_employee': 'employees.manage',
+    'storage_locations': 'locations.view',
+    'add_storage_location': 'locations.manage',
+    'storage_stocks': 'location_stock.manage',
+    'issue_requests': 'issue_requests.view',
+    'approve_issue_request': 'issue_requests.approve',
+    'reject_issue_request': 'issue_requests.approve',
+    'execute_issue_request': 'issue_requests.execute',
+    'stock_issue': 'stock_issue.direct',
+    'employee_returns': 'returns.manage',
+    'damage_record': 'damage.manage',
+    'stocktakes': 'stocktakes.view',
+    'view_stocktake': 'stocktakes.view',
+    'submit_stocktake': 'stocktakes.manage',
+    'reject_stocktake': 'stocktakes.approve',
+    'approve_stocktake': 'stocktakes.approve',
+    'reports': 'reports.view',
+    'purchases_report': 'reports.view',
+    'inventory_report': 'reports.view',
+    'issues_report': 'reports.view',
+    'damage_report': 'reports.view',
+    'top_selling_report': 'reports.view',
+    'profit_report': 'reports.view',
+    'customers_report': 'reports.view',
+    'export_inventory_excel': 'reports.export',
+    'export_inventory_pdf': 'reports.export',
+    'export_issues_excel': 'reports.export',
+    'export_issues_pdf': 'reports.export',
+    'export_damage_excel': 'reports.export',
+    'export_damage_pdf': 'reports.export',
+    'activity': 'activity.view',
+    'audit': 'audit.view',
+    'users': 'users.manage',
+    'add_user': 'users.manage',
+    'edit_user': 'users.manage',
+    'delete_user': 'users.manage',
+    'settings': 'settings.manage',
+    'catalog_import': 'settings.manage',
+    'clear_reference_catalog': 'settings.manage',
+    'category_catalog_import': 'settings.manage',
+    'clear_reference_categories': 'settings.manage',
+}
+
+
+def parse_permissions(value):
+    if not value:
+        return set()
+    try:
+        data = json.loads(value)
+        if isinstance(data, list):
+            return {item for item in data if item in ALL_PERMISSION_CODES}
+    except (TypeError, ValueError):
+        return {item.strip() for item in value.split(',') if item.strip() in ALL_PERMISSION_CODES}
+    return set()
+
+
+def user_permissions(user):
+    if not user or not user.is_authenticated:
+        return set()
+    if user.role == 'admin':
+        return set(ALL_PERMISSION_CODES)
+    permissions = set(ROLE_DEFAULT_PERMISSIONS.get(user.role, set()))
+    permissions.update(parse_permissions(getattr(user, 'custom_permissions', None)))
+    return permissions
+
+
+def has_permission(permission_code):
+    if not permission_code:
+        return current_user.is_authenticated
+    return permission_code in user_permissions(current_user)
+
+
+def permission_required(permission_code):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated or not has_permission(permission_code):
+                flash('ليس لديك صلاحية تنفيذ هذا الإجراء.', 'danger')
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         from flask_login import current_user
-        if not current_user.is_authenticated or current_user.role != 'admin':
+        if not current_user.is_authenticated or not has_permission(ENDPOINT_PERMISSIONS.get(request.endpoint, 'users.manage')):
             flash('ليس لديك صلاحية الوصول لهذه الصفحة.', 'danger')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
@@ -39,7 +217,8 @@ def roles_required(*roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not current_user.is_authenticated or current_user.role not in roles:
+            permission_code = ENDPOINT_PERMISSIONS.get(request.endpoint)
+            if not current_user.is_authenticated or (current_user.role not in roles and not has_permission(permission_code)):
                 flash('ليس لديك صلاحية تنفيذ هذا الإجراء.', 'danger')
                 return redirect(url_for('index'))
             return f(*args, **kwargs)
@@ -59,7 +238,7 @@ def cashier_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         from flask_login import current_user
-        if not current_user.is_authenticated or current_user.role not in ('cashier', 'admin'):
+        if not current_user.is_authenticated or (current_user.role not in ('cashier', 'admin') and not has_permission(ENDPOINT_PERMISSIONS.get(request.endpoint))):
             flash('Access denied: cashier tab is required.', 'danger')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
@@ -82,6 +261,17 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 migrate = Migrate(app, db)
+
+
+@app.before_request
+def enforce_endpoint_permissions():
+    if request.endpoint in (None, 'static', 'login', 'logout'):
+        return None
+    permission_code = ENDPOINT_PERMISSIONS.get(request.endpoint)
+    if permission_code and current_user.is_authenticated and not has_permission(permission_code):
+        flash('ليس لديك صلاحية الوصول لهذه الصفحة أو تنفيذ هذا الإجراء.', 'danger')
+        return redirect(url_for('index'))
+    return None
 
 
 def is_database_locked_error(exc):
@@ -135,6 +325,7 @@ def generate_sequence(model, field_name, prefix):
 def populate_user_form_choices(form):
     branches = Branch.query.filter_by(is_active=True).order_by(Branch.name).all()
     form.branch_id.choices = [(0, 'كل الفروع')] + [(branch.id, f'{branch.name} ({branch.code})') for branch in branches]
+    form.permissions.choices = [(code, f'{label} [{code}]') for items in PERMISSION_GROUPS.values() for code, label in items]
 
 
 def scoped_branch_id():
@@ -163,11 +354,11 @@ def require_e_signature(action_label):
 
 
 def can_approve_requests():
-    return current_user.is_authenticated and current_user.role in APPROVAL_ROLES
+    return current_user.is_authenticated and has_permission('issue_requests.approve')
 
 
 def can_manage_warehouse():
-    return current_user.is_authenticated and current_user.role in PRIVILEGED_ROLES
+    return current_user.is_authenticated and has_permission('issue_requests.execute')
 
 
 def excel_response(filename, headers, rows, title=None):
@@ -357,6 +548,7 @@ def ensure_company_columns():
         try_add('employees', 'employee_code TEXT')
         try_add('employees', 'branch_id INTEGER')
         try_add('users', 'branch_id INTEGER')
+        try_add('users', 'custom_permissions TEXT')
         try_add('stock_issue_requests', 'approved_signature TEXT')
         try_add('stock_issue_requests', 'executed_signature TEXT')
         try_add('stock_issue_requests', 'rejected_signature TEXT')
@@ -1742,6 +1934,9 @@ def issue_requests():
     form = StockIssueRequestForm()
     populate_product_employee_choices(form)
     if form.validate_on_submit():
+        if not has_permission('issue_requests.create'):
+            flash('ليس لديك صلاحية إنشاء طلب صرف.', 'danger')
+            return redirect(url_for('issue_requests'))
         employee = Employee.query.get(form.employee_id.data)
         if not can_access_employee(employee):
             flash('ليس لديك صلاحية إنشاء طلب صرف لهذا الموظف أو الفرع.', 'danger')
@@ -1774,7 +1969,7 @@ def issue_requests():
         query = query.filter_by(status=status)
     if scoped_branch_id():
         query = query.join(Employee, StockIssueRequest.employee_id == Employee.id).filter(Employee.branch_id == scoped_branch_id())
-    elif current_user.role not in ('admin', 'approver', 'warehouse_manager', 'auditor'):
+    elif not (has_permission('issue_requests.approve') or has_permission('issue_requests.execute') or has_permission('audit.view')):
         query = query.filter_by(requested_by_id=current_user.id)
     requests_page = query.order_by(StockIssueRequest.requested_at.desc()).paginate(
         page=request.args.get('page', 1, type=int),
@@ -2669,9 +2864,10 @@ def audit():
 # Users routes
 @app.route('/users')
 @login_required
+@permission_required('users.manage')
 def users():
     # Only admin users should be able to manage users
-    if current_user.role != 'admin':
+    if not has_permission('users.manage'):
         flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
         return redirect(url_for('index'))
     
@@ -2682,7 +2878,7 @@ def users():
 @login_required
 @admin_required
 def add_user():
-    if current_user.role != 'admin':
+    if not has_permission('users.manage'):
         flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
         return redirect(url_for('index'))
     form = UserForm()
@@ -2699,6 +2895,7 @@ def add_user():
             email=form.email.data,
             role=form.role.data,
             branch_id=form.branch_id.data if form.branch_id.data else None,
+            custom_permissions=json.dumps([p for p in form.permissions.data if p in ALL_PERMISSION_CODES], ensure_ascii=False) if form.permissions.data else None,
             is_active=form.is_active.data if hasattr(form, 'is_active') else True
         )
         if not form.password.data:
@@ -2724,19 +2921,22 @@ def add_user():
 @login_required
 @admin_required
 def edit_user(id):
-    if current_user.role != 'admin':
+    if not has_permission('users.manage'):
         flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
         return redirect(url_for('index'))
     user = User.query.get_or_404(id)
     form = UserForm(obj=user)
     populate_user_form_choices(form)
+    if request.method == 'GET':
+        form.permissions.data = sorted(parse_permissions(user.custom_permissions))
     if form.validate_on_submit():
         user.username = form.username.data
         user.email = form.email.data
         # فقط الأدمن يمكنه تغيير الصلاحية
-        if current_user.role == 'admin':
+        if has_permission('users.manage'):
             user.role = form.role.data
             user.branch_id = form.branch_id.data if form.branch_id.data else None
+            user.custom_permissions = json.dumps([p for p in form.permissions.data if p in ALL_PERMISSION_CODES], ensure_ascii=False) if form.permissions.data else None
         user.is_active = form.is_active.data
         if form.password.data:
             user.set_password(form.password.data)
@@ -2757,7 +2957,7 @@ def edit_user(id):
 @login_required
 @admin_required
 def delete_user(id):
-    if current_user.role != 'admin':
+    if not has_permission('users.manage'):
         flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
         return redirect(url_for('index'))
     user = User.query.get_or_404(id)
@@ -2783,7 +2983,7 @@ def delete_user(id):
 @login_required
 @admin_required
 def settings():
-    if current_user.role != 'admin':
+    if not has_permission('settings.manage'):
         flash('Access denied for non-admin users.', 'danger')
         return redirect(url_for('index'))
     if request.method == 'POST':
@@ -3547,7 +3747,7 @@ def inject_settings():
         args['page'] = page
         return url_for(request.endpoint, **(request.view_args or {}), **args)
 
-    return dict(settings=settings, page_url=page_url)
+    return dict(settings=settings, page_url=page_url, can=has_permission, permission_groups=PERMISSION_GROUPS)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001, use_reloader=False)

@@ -68,7 +68,7 @@
             </div>
             
             <div class="row">
-                {% if current_user.role in ['admin', 'warehouse_manager'] %}
+                {% if can('products.manage') %}
                 <div class="col-md-4 mb-3">
                     {{ form.purchase_price.label(class="form-label") }}
                     {{ form.purchase_price(class="form-control") }}

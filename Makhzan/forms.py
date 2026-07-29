@@ -1,5 +1,5 @@
 ﻿from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, TextAreaField, FloatField, IntegerField, SelectField, DateField
+from wtforms import StringField, PasswordField, BooleanField, TextAreaField, FloatField, IntegerField, SelectField, DateField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, EqualTo, Optional, Length, NumberRange, Regexp
 from datetime import datetime
 from flask_wtf.file import FileField, FileAllowed, FileRequired
@@ -102,6 +102,7 @@ class UserForm(FlaskForm):
         ('user', 'مستخدم')
     ], validators=[DataRequired()])
     is_active = BooleanField('نشط')
+    permissions = SelectMultipleField('صلاحيات مخصصة', choices=[], validators=[Optional()])
     password = PasswordField('كلمة المرور', validators=[Optional(), Length(min=4), Regexp(r'^[a-zA-Z0-9]+$', message='كلمة المرور يجب أن تتكون من حروف أو أرقام فقط')])
     confirm_password = PasswordField('تأكيد كلمة المرور', validators=[Optional(), EqualTo('password')])
 

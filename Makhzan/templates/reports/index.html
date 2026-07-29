@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}تقارير المخزن{% endblock %}
 {% block header %}تقارير المخزن{% endblock %}
 
 {% block content %}
-{% if current_user.role in ['admin', 'warehouse_manager', 'auditor'] %}
+{% if can('reports.view') %}
 <div class="row">
     <div class="col-md-4 mb-4">
         <div class="card h-100">
@@ -66,12 +66,14 @@
                         <button type="submit" class="btn btn-primary">عرض تقرير المخزون</button>
                     </div>
                 </form>
+                {% if can('reports.export') %}
                 <a class="btn btn-outline-success w-100 mt-2" href="{{ url_for('export_inventory_excel') }}">
                     <i class="fas fa-file-excel"></i> تصدير Excel
                 </a>
                 <a class="btn btn-outline-danger w-100 mt-2" href="{{ url_for('export_inventory_pdf') }}">
                     <i class="fas fa-file-pdf"></i> تصدير PDF
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -105,12 +107,14 @@
                         <button type="submit" class="btn btn-primary">عرض تقرير الصرف</button>
                     </div>
                 </form>
+                {% if can('reports.export') %}
                 <a class="btn btn-outline-success w-100 mt-2" href="{{ url_for('export_issues_excel') }}">
                     <i class="fas fa-file-excel"></i> تصدير Excel
                 </a>
                 <a class="btn btn-outline-danger w-100 mt-2" href="{{ url_for('export_issues_pdf') }}">
                     <i class="fas fa-file-pdf"></i> تصدير PDF
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -137,12 +141,14 @@
                         <button type="submit" class="btn btn-primary">عرض تقرير الهالك</button>
                     </div>
                 </form>
+                {% if can('reports.export') %}
                 <a class="btn btn-outline-success w-100 mt-2" href="{{ url_for('export_damage_excel') }}">
                     <i class="fas fa-file-excel"></i> تصدير Excel
                 </a>
                 <a class="btn btn-outline-danger w-100 mt-2" href="{{ url_for('export_damage_pdf') }}">
                     <i class="fas fa-file-pdf"></i> تصدير PDF
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -151,3 +157,5 @@
 <div class="alert alert-warning">التقارير متاحة لمدير النظام فقط.</div>
 {% endif %}
 {% endblock %}
+
+

@@ -5,7 +5,7 @@
 {% block header %}تعديل المخزون{% endblock %}
 
 {% block content %}
-{% if current_user.role not in ['admin', 'warehouse_manager'] %}
+{% if not can('inventory.adjust') %}
 <div class="alert alert-danger mt-5 text-center">ليس لديك صلاحية الوصول لهذه الصفحة.</div>
 {% else %}
 <div class="card">

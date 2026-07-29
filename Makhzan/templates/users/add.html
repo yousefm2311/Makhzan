@@ -72,6 +72,11 @@
                         {{ form.branch_id(class="form-select") }}
                         <div class="form-text">اتركه على كل الفروع لحسابات الإدارة العامة فقط.</div>
                     </div>
+                    <div class="mb-3">
+                        {{ form.permissions.label(class="form-label") }}
+                        {{ form.permissions(class="form-select", size=12, multiple=True) }}
+                        <div class="form-text">اضغط Ctrl لاختيار أكثر من صلاحية. الصلاحيات المختارة تضاف فوق صلاحيات الدور.</div>
+                    </div>
                     <div class="mb-3 form-check">
                         {{ form.is_active(class="form-check-input") }}
                         {{ form.is_active.label(class="form-check-label ms-2") }}

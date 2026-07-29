@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -106,131 +106,40 @@
                     </div>
 
                     <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" href="{{ url_for('index') }}">
-                                <i class="fas fa-tachometer-alt"></i> لوحة المتابعة
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('products')) %}active{% endif %}" href="{{ url_for('products') }}">
-                                <i class="fas fa-box"></i> الأصناف
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('categories')) %}active{% endif %}" href="{{ url_for('categories') }}">
-                                <i class="fas fa-tags"></i> التصنيفات
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            {% set purchases_path = url_for('purchases') %}
-                            {% set purchases_due_path = url_for('purchases_due') %}
-                            <a class="nav-link {% if request.path.startswith(purchases_path) and not request.path.startswith(purchases_due_path) %}active{% endif %}" href="{{ purchases_path }}">
-                                <i class="fas fa-dolly"></i> التوريدات
-                            </a>
-                        </li>
-                        {% if current_user.role in ['admin', 'warehouse_manager'] %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('purchases_due')) %}active{% endif %}" href="{{ url_for('purchases_due') }}">
-                                <i class="fas fa-calendar-check"></i> مستحقات الموردين
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('suppliers')) %}active{% endif %}" href="{{ url_for('suppliers') }}">
-                                <i class="fas fa-truck"></i> الموردين
-                            </a>
-                        </li>
-                        {% if current_user.role in ['admin', 'warehouse_manager'] %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('branches')) %}active{% endif %}" href="{{ url_for('branches') }}">
-                                <i class="fas fa-building"></i> الفروع
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('employees')) %}active{% endif %}" href="{{ url_for('employees') }}">
-                                <i class="fas fa-id-badge"></i> الموظفين
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('inventory')) and not request.path.startswith(url_for('stock_issue')) and not request.path.startswith(url_for('damage_record')) %}active{% endif %}" href="{{ url_for('inventory') }}">
-                                <i class="fas fa-warehouse"></i> المخزون
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/inventory/issue-requests') %}active{% endif %}" href="/inventory/issue-requests">
-                                <i class="fas fa-clipboard-check"></i> طلبات الصرف
-                            </a>
-                        </li>
-                        {% if current_user.role in ['admin', 'warehouse_manager'] %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/storage-locations') %}active{% endif %}" href="/storage-locations">
-                                <i class="fas fa-map-marker-alt"></i> مواقع التخزين
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/storage-stocks') %}active{% endif %}" href="/storage-stocks">
-                                <i class="fas fa-boxes-stacked"></i> كميات المواقع
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('stock_issue')) %}active{% endif %}" href="{{ url_for('stock_issue') }}">
-                                <i class="fas fa-share-square"></i> صرف عهدة
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/inventory/returns') %}active{% endif %}" href="/inventory/returns">
-                                <i class="fas fa-undo"></i> مرتجع عهدة
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/inventory/stocktakes') %}active{% endif %}" href="/inventory/stocktakes">
-                                <i class="fas fa-tasks"></i> الجرد
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('damage_record')) %}active{% endif %}" href="{{ url_for('damage_record') }}">
-                                <i class="fas fa-exclamation-triangle"></i> الهالك
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('reports')) %}active{% endif %}" href="{{ url_for('reports') }}">
-                                <i class="fas fa-chart-bar"></i> التقارير
-                            </a>
-                        </li>
-                        {% if current_user.role == 'admin' %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('users')) %}active{% endif %}" href="{{ url_for('users') }}">
-                                <i class="fas fa-user-cog"></i> مستخدمي النظام
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('settings')) %}active{% endif %}" href="{{ url_for('settings') }}">
-                                <i class="fas fa-cog"></i> الإعدادات
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('catalog_import')) %}active{% endif %}" href="{{ url_for('catalog_import') }}">
-                                <i class="fas fa-file-import"></i> استيراد الأصناف
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('category_catalog_import')) %}active{% endif %}" href="{{ url_for('category_catalog_import') }}">
-                                <i class="fas fa-list-alt"></i> استيراد التصنيفات
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith(url_for('activity')) %}active{% endif %}" href="{{ url_for('activity') }}">
-                                <i class="fas fa-history"></i> سجل النشاط
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/audit') %}active{% endif %}" href="/audit">
-                                <i class="fas fa-shield-alt"></i> سجل التدقيق
-                            </a>
-                        </li>
-                        {% endif %}
+                        {% set nav_items = [
+                            ('dashboard.view', url_for('index'), 'fas fa-tachometer-alt', 'لوحة المتابعة'),
+                            ('products.view', url_for('products'), 'fas fa-box', 'الأصناف'),
+                            ('categories.view', url_for('categories'), 'fas fa-tags', 'التصنيفات'),
+                            ('purchases.view', url_for('purchases'), 'fas fa-dolly', 'التوريدات'),
+                            ('purchases.manage', url_for('purchases_due'), 'fas fa-calendar-check', 'مستحقات الموردين'),
+                            ('suppliers.view', url_for('suppliers'), 'fas fa-truck', 'الموردين'),
+                            ('branches.view', url_for('branches'), 'fas fa-building', 'الفروع'),
+                            ('employees.view', url_for('employees'), 'fas fa-id-badge', 'الموظفين'),
+                            ('inventory.view', url_for('inventory'), 'fas fa-warehouse', 'المخزون'),
+                            ('issue_requests.view', '/inventory/issue-requests', 'fas fa-clipboard-check', 'طلبات الصرف'),
+                            ('locations.view', '/storage-locations', 'fas fa-map-marker-alt', 'مواقع التخزين'),
+                            ('location_stock.manage', '/storage-stocks', 'fas fa-boxes-stacked', 'كميات المواقع'),
+                            ('stock_issue.direct', url_for('stock_issue'), 'fas fa-share-square', 'صرف عهدة'),
+                            ('returns.manage', '/inventory/returns', 'fas fa-undo', 'مرتجع عهدة'),
+                            ('stocktakes.view', '/inventory/stocktakes', 'fas fa-tasks', 'الجرد'),
+                            ('damage.manage', url_for('damage_record'), 'fas fa-exclamation-triangle', 'الهالك'),
+                            ('reports.view', url_for('reports'), 'fas fa-chart-bar', 'التقارير'),
+                            ('users.manage', url_for('users'), 'fas fa-user-cog', 'مستخدمي النظام'),
+                            ('settings.manage', url_for('settings'), 'fas fa-cog', 'الإعدادات'),
+                            ('settings.manage', url_for('catalog_import'), 'fas fa-file-import', 'استيراد الأصناف'),
+                            ('settings.manage', url_for('category_catalog_import'), 'fas fa-list-alt', 'استيراد التصنيفات'),
+                            ('activity.view', url_for('activity'), 'fas fa-history', 'سجل النشاط'),
+                            ('audit.view', '/audit', 'fas fa-shield-alt', 'سجل التدقيق')
+                        ] %}
+                        {% for permission, href, icon, label in nav_items %}
+                            {% if can(permission) %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == href or (href != '/' and request.path.startswith(href)) %}active{% endif %}" href="{{ href }}">
+                                    <i class="{{ icon }}"></i> {{ label }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
                     </ul>
                 </div>
             </div>
@@ -277,3 +186,4 @@
     {% block scripts %}{% endblock %}
 </body>
 </html>
+
