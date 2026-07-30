@@ -92,6 +92,34 @@
             min-width: 2.25rem;
             text-align: center;
         }
+
+        .table-toolbar {
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .table-search-group {
+            width: 260px;
+            max-width: 100%;
+            align-items: stretch;
+        }
+
+        .table-search-group .form-control,
+        .table-search-group .btn {
+            height: 36px;
+            min-height: 36px;
+            padding-top: 0.35rem;
+            padding-bottom: 0.35rem;
+            line-height: 1.2;
+        }
+
+        .table-search-group .btn {
+            width: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 
     {% block styles %}{% endblock %}

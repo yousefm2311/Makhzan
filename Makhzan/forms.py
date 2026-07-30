@@ -91,7 +91,7 @@ class ReportForm(FlaskForm):
 
 class UserForm(FlaskForm):
     username = StringField('اسم المستخدم', validators=[DataRequired(), Length(min=3, max=64)])
-    email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])
+    email = StringField('البريد الإلكتروني', validators=[Optional(), Email()])
     branch_id = SelectField('نطاق الفرع', coerce=int, validators=[Optional()])
     role = SelectField('الصلاحية', choices=[
         ('admin', 'ادمن'),

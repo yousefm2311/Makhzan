@@ -1,0 +1,58 @@
+<script>
+document.querySelectorAll('[data-permission-picker]').forEach(function(wrapper) {
+    const hiddenSelect = wrapper.querySelector('select[multiple]');
+    const dropdown = wrapper.querySelector('[data-permission-dropdown]');
+    const tags = wrapper.querySelector('[data-permission-tags]');
+
+    function selectedOptions() {
+        return Array.from(hiddenSelect.options).filter(function(option) {
+            return option.selected;
+        });
+    }
+
+    function renderTags() {
+        tags.innerHTML = '';
+        const selected = selectedOptions();
+        if (!selected.length) {
+            const empty = document.createElement('span');
+            empty.className = 'text-muted small';
+            empty.textContent = 'لا توجد صلاحيات مخصصة';
+            tags.appendChild(empty);
+            return;
+        }
+        selected.forEach(function(option) {
+            const tag = document.createElement('span');
+            tag.className = 'permission-tag';
+            tag.textContent = option.text;
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.setAttribute('aria-label', 'حذف الصلاحية');
+            remove.textContent = '×';
+            remove.addEventListener('click', function() {
+                option.selected = false;
+                renderTags();
+            });
+
+            tag.appendChild(remove);
+            tags.appendChild(tag);
+        });
+    }
+
+    dropdown.addEventListener('change', function() {
+        if (!dropdown.value) {
+            return;
+        }
+        const option = Array.from(hiddenSelect.options).find(function(item) {
+            return item.value === dropdown.value;
+        });
+        if (option) {
+            option.selected = true;
+        }
+        dropdown.value = '';
+        renderTags();
+    });
+
+    renderTags();
+});
+</script>

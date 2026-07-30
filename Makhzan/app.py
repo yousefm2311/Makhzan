@@ -24,6 +24,7 @@ import json
 PRIVILEGED_ROLES = ('admin', 'warehouse_manager')
 APPROVAL_ROLES = ('admin', 'approver', 'warehouse_manager')
 AUDIT_ROLES = ('admin', 'auditor', 'warehouse_manager')
+NO_EMAIL_DOMAIN = 'no-email.local'
 
 PERMISSION_GROUPS = OrderedDict([
     ('الصفحات الرئيسية', [
@@ -200,6 +201,24 @@ def permission_required(permission_code):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def is_placeholder_email(email):
+    return bool(email) and email.endswith(f'@{NO_EMAIL_DOMAIN}')
+
+
+def normalize_user_email(username, email):
+    email_value = (email or '').strip()
+    if email_value:
+        return email_value
+    username_value = (username or '').strip().lower()
+    return f'{username_value}@{NO_EMAIL_DOMAIN}'
+
+
+def display_user_email(email):
+    if not email or is_placeholder_email(email):
+        return '-'
+    return email
 
 
 def admin_required(f):
@@ -2884,7 +2903,8 @@ def add_user():
     form = UserForm()
     populate_user_form_choices(form)
     if form.validate_on_submit():
-        if User.query.filter_by(email=form.email.data).first():
+        email_value = normalize_user_email(form.username.data, form.email.data)
+        if form.email.data and User.query.filter(func.lower(User.email) == email_value.lower()).first():
             flash('البريد الإلكتروني مستخدم بالفعل من قبل مستخدم آخر.', 'danger')
             return render_template('users/add.html', form=form)
         if User.query.filter_by(username=form.username.data).first():
@@ -2892,7 +2912,7 @@ def add_user():
             return render_template('users/add.html', form=form)
         user = User(
             username=form.username.data,
-            email=form.email.data,
+            email=email_value,
             role=form.role.data,
             branch_id=form.branch_id.data if form.branch_id.data else None,
             custom_permissions=json.dumps([p for p in form.permissions.data if p in ALL_PERMISSION_CODES], ensure_ascii=False) if form.permissions.data else None,
@@ -2928,10 +2948,20 @@ def edit_user(id):
     form = UserForm(obj=user)
     populate_user_form_choices(form)
     if request.method == 'GET':
+        if is_placeholder_email(user.email):
+            form.email.data = ''
         form.permissions.data = sorted(parse_permissions(user.custom_permissions))
     if form.validate_on_submit():
-        user.username = form.username.data
-        user.email = form.email.data
+        username_value = form.username.data
+        email_value = normalize_user_email(username_value, form.email.data)
+        if User.query.filter(func.lower(User.username) == username_value.lower(), User.id != user.id).first():
+            flash('اسم المستخدم مستخدم بالفعل من قبل مستخدم آخر.', 'danger')
+            return render_template('users/edit.html', form=form, user=user)
+        if form.email.data and User.query.filter(func.lower(User.email) == email_value.lower(), User.id != user.id).first():
+            flash('البريد الإلكتروني مستخدم بالفعل من قبل مستخدم آخر.', 'danger')
+            return render_template('users/edit.html', form=form, user=user)
+        user.username = username_value
+        user.email = email_value
         # فقط الأدمن يمكنه تغيير الصلاحية
         if has_permission('users.manage'):
             user.role = form.role.data
@@ -3747,7 +3777,7 @@ def inject_settings():
         args['page'] = page
         return url_for(request.endpoint, **(request.view_args or {}), **args)
 
-    return dict(settings=settings, page_url=page_url, can=has_permission, permission_groups=PERMISSION_GROUPS)
+    return dict(settings=settings, page_url=page_url, can=has_permission, permission_groups=PERMISSION_GROUPS, display_email=display_user_email)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001, use_reloader=False)

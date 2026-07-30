@@ -1,0 +1,47 @@
+<div class="mb-3 permission-picker" data-permission-picker>
+    {{ form.permissions.label(class="form-label") }}
+    {{ form.permissions(class="d-none", multiple=True) }}
+    <select class="form-select permission-dropdown" data-permission-dropdown>
+        <option value="">اختر صلاحية لإضافتها</option>
+        {% for value, label in form.permissions.choices %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+    </select>
+    <div class="permission-tags form-control mt-2" data-permission-tags></div>
+    <div class="form-text">اختر الصلاحية من القائمة، وسيتم إضافتها كوسم. اضغط × لحذفها.</div>
+</div>
+<style>
+    .permission-picker .permission-dropdown {
+        min-height: 38px;
+        height: 38px;
+    }
+    .permission-tags {
+        min-height: 44px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        padding: 6px;
+    }
+    .permission-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #0b5ed7;
+        border: 1px solid #cfe2ff;
+        font-size: 0.82rem;
+        line-height: 1.4;
+    }
+    .permission-tag button {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        font-weight: 700;
+        line-height: 1;
+    }
+</style>

@@ -47,7 +47,7 @@
                     <tr>
                         <td>{{ user.id }}</td>
                         <td>{{ user.username }}</td>
-                        <td>{{ user.email }}</td>
+                        <td>{{ display_email(user.email) }}</td>
                         <td><span class="badge bg-{{ role_info[1] }}">{{ role_info[0] }}</span></td>
                         <td>{{ user.branch.name if user.branch else 'كل الفروع' }}</td>
                         <td>
