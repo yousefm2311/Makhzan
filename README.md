@@ -1,12 +1,14 @@
+<div align="right">
+<a href="README-AR.md"><strong>🌐 عرض باللغة العربية</strong></a>
+</div>
+
 <div align="center">
-  <!-- مسار لوجو المشروع لو موجود -->
   <img src="Makhzan/static/images/logo.png" alt="Makhzan Logo" width="120" onerror="this.style.display='none'" />
 
-  # Makhzan - نظام المخازن المتكامل (Warehouse Management System)
+  # Makhzan - Integrated WMS & ERP System
 
-  **نظام متكامل واحترافي لإدارة المخازن، المبيعات، المشتريات، العهد، والفروع مع دعم كامل لنظام الصلاحيات المعقد، التوقيع الإلكتروني، والتقارير المتقدمة.**
+  **An enterprise-grade, fully integrated Warehouse Management System (WMS), Point of Sale (POS), and Inventory Tracking platform featuring granular RBAC permissions, E-Signatures, and Electron Desktop support.**
 
-  <!-- شارات التقنيات -->
   [![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
   [![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
   [![Bootstrap](https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
@@ -15,124 +17,149 @@
 
 ---
 
-## 📖 نظرة عامة (Overview)
+## 📖 Overview
 
-**Makhzan (مخزن)** هو تطبيق ويب وتطبيق سطح مكتب مخصص لإدارة المخازن بشكل احترافي للشركات والمحلات. يحل النظام مشكلة التشتت في متابعة المخزون، حيث يوفر دورة مستندية كاملة تبدأ من استلام البضائع من الموردين، وتوزيعها على الفروع أو مواقع التخزين، وصرف العهد للموظفين باستردادها أو تسجيل التوالف (الهالك). كما يتيح عمليات البيع (POS) وإصدار الفواتير للعملاء. 
+**Makhzan** is a comprehensive software solution designed for companies, warehouses, and retail stores to maintain absolute control over their supply chain and inventory. It bridges the gap between complex ERPs and simple spreadsheet tracking by providing a robust, document-driven workflow.
 
-النظام يدعم **التوقيع الإلكتروني** للموافقات، و**سجل التدقيق (Audit Trail)** لتتبع كل حركة يقوم بها أي مستخدم لضمان أعلى معايير الأمان والشفافية.
-
----
-
-## ✨ المميزات الأساسية (Key Features)
-
-*   **📦 إدارة المخزون المتقدمة:** تتبع حركات المخزون، جرد المخازن (Stocktakes)، وتوزيع المنتجات على مواقع تخزين مختلفة داخل الفروع.
-*   **👥 إدارة الفروع والعهد (Employees & Branches):** ربط الموظفين بالفروع، طلبات صرف العهد (Issue Requests) مع دورة موافقات (Approval Workflow) وتوقيع إلكتروني، وتسجيل مرتجعات العهد.
-*   **🛒 المشتريات والمبيعات:** فواتير شراء من الموردين ومبيعات للعملاء (نقدي/آجل)، مع تتبع الدفعات المستحقة (Due Payments).
-*   **🔐 نظام صلاحيات دقيق جداً (RBAC):** أدوار مخصصة (Admin, Warehouse Manager, Approver, Auditor, Cashier) مع إمكانية تخصيص الصلاحيات لكل مستخدم على مستوى الشاشة (Granular Permissions).
-*   **📑 تقارير متكاملة وتصدير (PDF & Excel):** دعم كامل للغة العربية في تصدير الـ PDF (عبر ReportLab و Arabic Reshaper)، وتصدير بيانات المخزون والحركات إلى Excel (عبر OpenPyXL).
-*   **🛡️ سجل التدقيق (Audit Logs):** تسجيل كل نقرة وتعديل داخل النظام (من قام بالتعديل، متى، وما هو التعديل) لمنع التلاعب.
-*   **💻 تطبيق سطح مكتب (Desktop App):** النظام يحتوي على نسخة Electron لتغليف الـ Flask App ليعمل كتطبيق سطح مكتب (Desktop App) بسهولة دون الحاجة لفتح المتصفح.
+Whether you are managing multi-branch company assets, tracking employee custodial items (العهد), performing routine physical stocktakes, or running a retail Point of Sale (POS) counter, Makhzan adapts to your operational mode.
 
 ---
 
-## 🏗 التقنيات المستخدمة وهيكلة المشروع (Tech Stack & Architecture)
+## ✨ Comprehensive Feature Set
 
-يعتمد المشروع على بنية متينة وسريعة مناسبة للاستخدام المحلي أو الاستضافة السحابية:
+### 📦 1. Advanced Inventory Management
+*   **Multi-Location Storage:** Track stock across different physical branches, zones, and storage bins.
+*   **Physical Stocktakes (الجرد):** Create draft stocktake sessions, input counted quantities, automatically calculate variances, and route the count sheet for managerial approval.
+*   **Damage Control:** Log damaged items with automated deduction from active inventory and tracking of employee responsibility.
+*   **Stock Adjustments & Transfers:** Comprehensive logging of all manual stock corrections.
 
-*   **الواجهة الخلفية (Backend):** Python / Flask
-*   **قاعدة البيانات (Database):** SQLite (عبر SQLAlchemy ORM)
-*   **الواجهة الأمامية (Frontend):** HTML5, CSS3, Bootstrap 5, JavaScript, Jinja2 Templates (دعم الوضع الليلي Dark Mode)
-*   **تغليف سطح المكتب (Desktop Wrapper):** Electron.js, Node.js
-*   **التقارير (Reports):** ReportLab (PDF), OpenPyXL (Excel)
-*   **إدارة الحالة والجلسات:** Flask-Login
-*   **إدارة النماذج والتحقق:** Flask-WTF
+### 👥 2. Corporate Assets & Employee Tracking (العهد)
+*   **Custodial Issue Requests:** Employees can request equipment or materials. The workflow mandates dual-layer approval (Requester -> Approver -> Warehouse Execution).
+*   **Electronic Signatures:** Secure the chain of custody. Approving or executing a stock issue requires the user to input their password, stamping the document with a verifiable E-Signature and timestamp.
+*   **Custodial Returns:** Log the return of items from employees, noting the condition of the returned item (Usable, Damaged).
 
-### 📂 هيكلة المشروع (Directory Structure)
+### 🛒 3. Procurement & Point of Sale (POS)
+*   **Supplier Purchases:** Generate purchase invoices, track total amounts, log partial payments, and monitor due dates for outstanding balances (majel).
+*   **Retail Sales (POS):** Fast-checkout interface for retail customers. Supports partial payments, outstanding balances, and direct deduction from live inventory.
+*   **Corporate Mode Toggle:** The system can intelligently hide retail/POS interfaces for internal corporate environments.
+
+### 🔐 4. Granular RBAC (Role-Based Access Control)
+*   **Standard Roles:** Preconfigured roles including `Admin`, `Warehouse Manager`, `Approver`, `Auditor`, `Requester`, and `Cashier`.
+*   **Custom View & Action Scopes:** Permissions are divided into specific actions (e.g., `products.view`, `issue_requests.approve`). An Admin can selectively grant granular permissions to specific users, overriding their base role.
+*   **Branch-Restricted Access:** Users and employees can be locked to specific branches, ensuring they only view and interact with local inventory.
+
+### 📊 5. Automated Reporting & Auditing
+*   **Audit Trail:** Every insert, update, and delete operation is logged in the `AuditLog` table with the User ID, IP Address, Timestamp, and context.
+*   **Rich PDF Exports:** Fully stylized PDF reports utilizing `ReportLab` with complete Bi-Directional (RTL) Arabic font support. 
+*   **Excel Exports:** Data-heavy tables are exportable to `.xlsx` using `OpenPyXL` for offline financial analysis.
+
+---
+
+## 🏗 Architecture & Tech Stack
+
+Makhzan is built on a decoupled mindset within a monolithic architecture, ensuring rapid deployment and extreme portability.
+
+*   **Backend Framework:** Python 3.8+ / Flask
+*   **Database:** SQLite via SQLAlchemy ORM (Configured with connection timeouts and busy-handlers to support concurrent reads/writes).
+*   **Database Migrations:** Alembic / Flask-Migrate
+*   **Frontend UI:** Jinja2 Templating, Bootstrap 5, Custom CSS (Includes Native Dark/Light Mode toggle).
+*   **Desktop Wrapper:** Electron.js (Spawns a hidden Node.js child process to run the Python Flask server, then renders the `localhost` instance in a Chromium window).
+
+### 📂 Directory Structure
 
 ```text
 Makhzan/
-├── Makhzan/                  # مجلد تطبيق الويب (Flask App)
-│   ├── app.py                # نقطة الدخول (Entry point) وإعدادات Flask الأساسية
-│   ├── models.py             # هيكل قاعدة البيانات والجداول (SQLAlchemy Models)
-│   ├── routes.py             # مسارات الويب (Controllers / Views)
-│   ├── forms.py              # النماذج والتحقق من صحة الإدخالات (WTForms)
-│   ├── static/               # ملفات الـ CSS, JS, الصور والخطوط
-│   └── templates/            # ملفات الـ HTML (Jinja2) مقسمة حسب الوحدات (فواتير، مخزون، تقارير...)
-├── desktop/                  # مجلد تطبيق سطح المكتب (Electron Wrapper)
-│   ├── main.js               # الكود الأساسي لتشغيل نافذة Electron وتشغيل سيرفر Flask
-│   ├── preload.js            # جسر التواصل بين الـ Node.js والـ Frontend
-│   └── package.json          # إعدادات الـ Node واعتمادات Electron
-├── migrations/               # ملفات تهجير قاعدة البيانات (Flask-Migrate / Alembic)
-├── requirements.txt          # مكتبات بايثون المطلوبة لتشغيل المشروع
-└── README.md                 # هذا الملف
+├── Makhzan/                  # Core Flask Application
+│   ├── app.py                # App factory, Configuration, core routes, and utilities
+│   ├── models.py             # SQLAlchemy Database Schema (20+ relational tables)
+│   ├── routes.py             # HTTP endpoints and view controllers
+│   ├── forms.py              # Flask-WTF Form classes and validation logic
+│   ├── static/               # Assets (CSS, JS, Images, Fonts)
+│   └── templates/            # Jinja2 HTML templates organized by module
+├── desktop/                  # Electron Desktop Wrapper
+│   ├── main.js               # Electron lifecycle & Python sub-process manager
+│   ├── preload.js            # Secure IPC bridge
+│   └── package.json          # Node dependencies and build scripts
+├── migrations/               # Alembic version control for database schema
+├── requirements.txt          # Python dependencies
+├── README.md                 # English Documentation
+└── README-AR.md              # Arabic Documentation
 ```
 
 ---
 
-## 🚀 دليل التشغيل (Getting Started)
+## 🗄️ Database Schema Highlights
 
-### 📋 المتطلبات الأساسية (Prerequisites)
-*   تثبيت **Python** (إصدار 3.8 أو أحدث)
-*   تثبيت **Node.js** (إذا كنت ترغب في تشغيل نسخة سطح المكتب Electron)
+The system relies on a highly relational SQLite schema. Key entities include:
+*   `User`, `Employee`, `Branch`: Organizational structure.
+*   `Product`, `Category`, `Inventory`, `StorageLocation`: Core inventory definition.
+*   `Purchase`, `PurchaseItem`, `Supplier`: Inbound supply chain.
+*   `Sale`, `SaleItem`, `Customer`: Outbound retail chain.
+*   `StockIssueRequest`, `StockIssue`, `EmployeeReturn`, `DamageRecord`: Internal asset tracking and workflows.
+*   `InventoryTransaction`: The immutable ledger recording the Delta (`quantity_change`) of every movement.
 
-### 🛠️ خطوات التثبيت والتشغيل (Web Version)
+---
 
-1. **نسخ المشروع:**
-   افتح الـ Terminal (أو موجه الأوامر) واذهب لمجلد المشروع.
+## 🚀 Getting Started
 
-2. **إنشاء البيئة الوهمية (Virtual Environment) وتفعيلها:**
+### 📋 Prerequisites
+*   **Python 3.8+**
+*   **Node.js & npm** (Required only for the Desktop App)
+
+### 🌐 1. Running as a Web Server (Standard)
+
+1. **Clone & Navigate**
+   ```bash
+   git clone https://github.com/your-username/makhzan.git
+   cd makhzan
+   ```
+
+2. **Create a Virtual Environment**
    ```bash
    python -m venv venv
-   # في الويندوز:
+   # Windows:
    venv\Scripts\activate
-   # في الماك/لينكس:
+   # Linux/Mac:
    source venv/bin/activate
    ```
 
-3. **تثبيت المكتبات المطلوبة:**
+3. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **تشغيل المشروع:**
+4. **Run the Server**
    ```bash
    cd Makhzan
    flask run --host=0.0.0.0 --port=5000
    ```
-   *سيقوم النظام تلقائياً بإنشاء قاعدة البيانات (`makhzan.db`) وإنشاء مستخدم افتراضي بصلاحيات Admin (اسم المستخدم: admin, كلمة المرور: admin123).*
+   > **Note:** On first boot, the system auto-generates `instance/makhzan.db` and injects a default admin account *(Username: admin, Password: admin123)*.
 
-5. افتح المتصفح على الرابط: `http://localhost:5000`
+### 🖥️ 2. Running as a Desktop Application (Electron)
 
----
+If you prefer a standalone executable experience without dealing with browser tabs:
 
-### 🖥️ خطوات تشغيل تطبيق سطح المكتب (Desktop Electron App)
-
-إذا أردت تشغيل المشروع كتطبيق مستقل يشبه البرامج العادية:
-
-1. تأكد أنك قمت بتثبيت مكتبات الـ Python (الخطوات 1 إلى 3 في الأعلى).
-2. افتح نافذة Terminal جديدة وادخل إلى مجلد `desktop`:
+1. Ensure Python dependencies are installed globally or in the virtual environment as shown above.
+2. Open a terminal in the `desktop` directory:
    ```bash
    cd desktop
-   ```
-3. تثبيت حزم النود:
-   ```bash
    npm install
    ```
-4. تشغيل البرنامج:
+3. Start the Electron wrapper:
    ```bash
    npm start
    ```
-   *هذا الأمر سيقوم بتشغيل سيرفر الـ Flask في الخلفية (عبر Python) ثم فتح نافذة Electron تعرض النظام.*
+   *This command uses `concurrently` to boot the Python Flask server in the background and waits for port 5000 to become active before launching the native Desktop Window.*
 
 ---
 
-## 💡 نصائح الاستخدام
+## 🛡️ Security & Workflow Notes
 
-- **الوضع الافتراضي (الشركة مقابل التجزئة):** يحتوي النظام على حماية للمسارات (Routes). إذا كان النظام موجهًا كمخزن لشركة، يمكن للمسؤول إخفاء واجهات البيع (POS) من الإعدادات، والتركيز على العهد وجرد المخازن.
-- **التوقيع الإلكتروني:** في طلبات صرف العهد (Issue Requests) سيُطلب من المدير الموافقة وإدخال كلمة المرور الخاصة به كتوقيع إلكتروني موثق يظهر في الـ PDF.
-- **تخصيص الصلاحيات:** لا تعطِ صلاحية `admin` إلا لمدير النظام. يمكنك إنشاء دور `warehouse_manager` وتحديد الشاشات التي يراها من قائمة تعديل المستخدم.
+*   **E-Signature Requirement:** When testing the `Issue Requests` approval flow, the system will prompt the logged-in user to re-enter their password. This generates an encrypted signature string stored directly on the database row.
+*   **Locked DB Handling:** Because SQLite locks the database during writes, `app.py` implements a custom `commit_with_retry` function with linear backoff, ensuring multi-user environments do not experience crashing during concurrent checkouts.
+*   **Data Integrity:** Inventory quantities are derived dynamically but cached in the `Inventory` table. The `InventoryTransaction` ledger acts as the ultimate source of truth for audits.
 
 ---
 
-## 📄 الترخيص (License)
-هذا المشروع ملكية خاصة وتم تطويره كحل متكامل لإدارة المخازن. جميع الحقوق محفوظة لمالك الكود الأصلي.
+## 📄 License
+This project is proprietary and was developed as a comprehensive WMS solution. All rights reserved.
