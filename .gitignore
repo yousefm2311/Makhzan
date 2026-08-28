@@ -4,3 +4,16 @@ __pycache__/
 desktop/node_modules/
 desktop_electron/node_modules/
 desktop_app/
+
+venv/
+__pycache__/
+*.pyc
+*.db
+*.db-journal
+instance/
+.env
+.vscode/
+*.txt
+*.xlsx
+node_modules/
+*.log
