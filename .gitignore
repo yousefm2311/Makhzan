@@ -17,3 +17,6 @@ instance/
 *.xlsx
 node_modules/
 *.log
+
+*/static/uploads/
+*/*/reference_uploads/
