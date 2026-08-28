@@ -4,10 +4,11 @@
   "private": true,
   "main": "main.js",
   "scripts": {
-    "start": "concurrently \"..\\.venv\\Scripts\\python.exe ..\\Makhzan\\app.py\" \"wait-on http://localhost:5001 && ..\\desktop_electron\\node_modules\\.bin\\electron .\""
+    "start": "concurrently \"..\\.venv\\Scripts\\python.exe ..\\Makhzan\\app.py\" \"wait-on http://localhost:5001 && electron .\""
   },
   "devDependencies": {
     "concurrently": "^8.2.0",
+    "electron": "^44.0.0",
     "wait-on": "^7.0.1"
   },
   "dependencies": {
