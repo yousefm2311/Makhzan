@@ -20,3 +20,5 @@ node_modules/
 
 */static/uploads/
 */*/reference_uploads/
+
+!requirements.txt

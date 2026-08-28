@@ -1,0 +1,14 @@
+
+Flask
+Flask-Login
+Werkzeug
+Flask-SQLAlchemy
+Flask-Migrate
+openpyxl
+arabic-reshaper
+python-bidi
+reportlab
+SQLAlchemy
+
+Flask-WTF
+WTForms
